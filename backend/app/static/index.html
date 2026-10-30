@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Debbo Santé — Poste de santé</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1><span>Debbo</span> Santé · Poste de santé</h1>
+    <div class="utilisateur">
+      <span id="utilisateur"></span>
+      <a href="/simulateur" target="_blank">Simulateur USSD ↗</a>
+      <button id="deconnexion">Se déconnecter</button>
+    </div>
+  </header>
+
+  <p class="avertissement">
+    Version de développement : données fictives.
+    Règles cliniques <strong id="regles-version">…</strong> en brouillon, à valider par les référents médicaux.
+  </p>
+
+  <div class="indicateurs" id="indicateurs"></div>
+
+  <main>
+    <section>
+      <h2>Alertes en cours</h2>
+      <div class="liste" id="alertes"></div>
+    </section>
+    <div class="colonne">
+      <section>
+        <h2>Demandes de rappel</h2>
+        <div class="liste" id="rappels"></div>
+      </section>
+      <section>
+        <h2>Femmes suivies</h2>
+        <div class="liste" id="femmes"></div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="saisie">
+    <form method="dialog">
+      <label for="saisie-champ" id="saisie-libelle"></label>
+      <input id="saisie-champ" autocomplete="off" required>
+      <div class="actions">
+        <button type="button" id="saisie-annuler">Annuler</button>
+        <button value="ok" class="principal">Valider</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>

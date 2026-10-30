@@ -1,0 +1,15 @@
+{
+  "name": "Debbo Relais",
+  "short_name": "Debbo Relais",
+  "description": "Suivi des femmes et des enfants par les relais communautaires, même sans réseau.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f3ee",
+  "theme_color": "#0f6e5c",
+  "icons": [
+    {"src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}

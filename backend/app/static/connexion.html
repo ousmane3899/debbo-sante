@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion · Debbo Santé</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="connexion">
+    <h1><span>Debbo</span> Santé</h1>
+    <p class="doux">Espace des soignants</p>
+
+    <form id="etape-mot-de-passe" hidden>
+      <label for="identifiant">Identifiant</label>
+      <input id="identifiant" autocomplete="username" autocapitalize="none" required>
+      <label for="mot-de-passe">Mot de passe</label>
+      <input id="mot-de-passe" type="password" autocomplete="current-password" required>
+      <button class="principal">Continuer</button>
+    </form>
+
+    <form id="etape-totp" hidden>
+      <p>Entrez le code à 6 chiffres affiché dans votre application d'authentification.</p>
+      <label for="code">Code</label>
+      <input id="code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
+      <button class="principal">Se connecter</button>
+    </form>
+
+    <form id="etape-activation" hidden>
+      <p><strong>Première connexion : activez la double authentification.</strong></p>
+      <ol>
+        <li>Installez une application d'authentification sur votre téléphone (par exemple Google Authenticator ou Aegis).</li>
+        <li>Scannez ce QR code avec elle.</li>
+        <li>Entrez le code à 6 chiffres qu'elle affiche.</li>
+      </ol>
+      <div id="qr" class="qr"></div>
+      <p class="doux">Pas d'appareil photo ? Saisissez cette clé : <code id="secret"></code></p>
+      <label for="code-activation">Code</label>
+      <input id="code-activation" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
+      <button class="principal">Activer et se connecter</button>
+    </form>
+
+    <div id="message" class="message" role="alert"></div>
+  </div>
+  <script src="/static/connexion.js"></script>
+</body>
+</html>

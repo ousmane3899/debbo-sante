@@ -1,0 +1,48 @@
+{
+  "version": "2026.10-brouillon",
+  "statut": "BROUILLON - doit être validé et signé par les référents médicaux avant toute mise en service",
+  "sources": [
+    "OMS - signes de danger pendant la grossesse, l'accouchement et le post-partum",
+    "OMS/UNICEF - signes de danger du nouveau-né (PCIME)",
+    "OMS/UNICEF - signes généraux de danger de l'enfant (PCIME) et seuils du périmètre brachial (6-59 mois)",
+    "Protocoles nationaux SR du Sénégal (à intégrer)"
+  ],
+  "niveaux": ["conseil", "consultation_24h", "urgence"],
+  "niveau_signe_inconnu": "consultation_24h",
+  "signes": {
+    "saignement": {"libelle": "Saignement vaginal", "niveau": "urgence", "contextes": ["grossesse", "postpartum"]},
+    "convulsions": {"libelle": "Convulsions ou perte de connaissance", "niveau": "urgence", "contextes": ["grossesse", "postpartum"]},
+    "cephalees_vision": {"libelle": "Maux de tête forts ou vision trouble", "niveau": "urgence", "contextes": ["grossesse", "postpartum"]},
+    "fievre_forte": {"libelle": "Forte fièvre, trop faible pour se lever", "niveau": "urgence", "contextes": ["grossesse", "postpartum"]},
+    "douleur_ventre_forte": {"libelle": "Douleur forte au ventre", "niveau": "urgence", "contextes": ["grossesse", "postpartum"]},
+    "respiration_difficile": {"libelle": "Respiration rapide ou difficile", "niveau": "urgence", "contextes": ["grossesse", "postpartum"]},
+    "perte_eaux": {"libelle": "Perte des eaux", "niveau": "urgence", "contextes": ["grossesse"]},
+    "bebe_ne_bouge_plus": {"libelle": "Le bébé ne bouge plus ou presque plus", "niveau": "urgence", "contextes": ["grossesse"]},
+    "gonflement_visage_mains": {"libelle": "Gonflement du visage ou des mains", "niveau": "urgence", "contextes": ["grossesse"]},
+    "pertes_odeur": {"libelle": "Pertes qui sentent mauvais", "niveau": "urgence", "contextes": ["postpartum"]},
+    "urgence_declaree": {"libelle": "La femme déclare une urgence", "niveau": "urgence", "contextes": ["grossesse", "postpartum", "nouveau_ne", "enfant"]},
+
+    "vomissements_persistants": {"libelle": "Vomissements qui ne s'arrêtent pas", "niveau": "consultation_24h", "contextes": ["grossesse"]},
+    "brulures_urinaires": {"libelle": "Brûlures en urinant", "niveau": "consultation_24h", "contextes": ["grossesse", "postpartum"]},
+    "fatigue_paleur": {"libelle": "Grande fatigue, pâleur", "niveau": "consultation_24h", "contextes": ["grossesse", "postpartum"]},
+    "seins_douloureux": {"libelle": "Seins rouges et douloureux", "niveau": "consultation_24h", "contextes": ["postpartum"]},
+
+    "nn_ne_tete_pas": {"libelle": "Le bébé ne tète pas ou ne boit pas", "niveau": "urgence", "contextes": ["nouveau_ne"]},
+    "nn_convulsions": {"libelle": "Le bébé a des convulsions", "niveau": "urgence", "contextes": ["nouveau_ne"]},
+    "nn_respiration": {"libelle": "Le bébé respire vite ou avec difficulté", "niveau": "urgence", "contextes": ["nouveau_ne"]},
+    "nn_chaud_froid": {"libelle": "Le bébé est trop chaud ou trop froid", "niveau": "urgence", "contextes": ["nouveau_ne"]},
+    "nn_ne_bouge_pas": {"libelle": "Le bébé ne bouge que si on le stimule", "niveau": "urgence", "contextes": ["nouveau_ne"]},
+    "nn_jaune": {"libelle": "Paumes ou plantes des pieds jaunes", "niveau": "urgence", "contextes": ["nouveau_ne"]},
+    "nn_cordon": {"libelle": "Cordon rouge ou qui coule", "niveau": "urgence", "contextes": ["nouveau_ne"]},
+    "nn_malade_declare": {"libelle": "La mère dit que le bébé est malade", "niveau": "urgence", "contextes": ["nouveau_ne"]},
+
+    "enf_ne_boit_pas": {"libelle": "L'enfant ne peut pas boire ni téter", "niveau": "urgence", "contextes": ["enfant"]},
+    "enf_vomit_tout": {"libelle": "L'enfant vomit tout ce qu'il prend", "niveau": "urgence", "contextes": ["enfant"]},
+    "enf_convulsions": {"libelle": "L'enfant a des convulsions", "niveau": "urgence", "contextes": ["enfant"]},
+    "enf_lethargique": {"libelle": "L'enfant est léthargique ou inconscient", "niveau": "urgence", "contextes": ["enfant"]},
+    "enf_oedemes": {"libelle": "Œdèmes des deux pieds", "niveau": "consultation_24h", "contextes": ["enfant"]},
+    "pb_rouge": {"libelle": "Périmètre brachial < 115 mm (malnutrition aiguë sévère)", "niveau": "consultation_24h", "contextes": ["enfant"], "mesure": true},
+    "pb_jaune": {"libelle": "Périmètre brachial 115 à 124 mm (malnutrition aiguë modérée)", "niveau": "conseil", "contextes": ["enfant"], "mesure": true}
+  },
+  "seuils_pb_mm": {"rouge_sous": 115, "jaune_sous": 125}
+}

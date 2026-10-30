@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulateur USSD Debbo</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .page { display: flex; flex-wrap: wrap; gap: 32px; justify-content: center; padding: 24px 16px; }
+    .telephone {
+      width: 280px;
+      background: #2b2a28;
+      border-radius: 32px;
+      padding: 28px 18px 24px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+    }
+    .ecran {
+      background: #c9d6b8;
+      color: #1d2a12;
+      font-family: "Courier New", monospace;
+      font-size: 14px;
+      line-height: 1.35;
+      border-radius: 8px;
+      min-height: 250px;
+      padding: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .ecran input {
+      width: 100%;
+      margin-top: 10px;
+      font: inherit;
+      background: #e5eedb;
+      border: 1px solid #8a9a74;
+      border-radius: 4px;
+      padding: 4px 6px;
+      color: inherit;
+    }
+    .touches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+    .touches button { background: #3d3c39; color: #f1ede6; border: none; padding: 10px 0; border-radius: 10px; }
+    .commandes { display: flex; gap: 8px; margin-top: 12px; }
+    .commandes button { flex: 1; border: none; }
+    .commandes .envoyer { background: #2f8f4e; color: #fff; }
+    .commandes .annuler { background: #a8392f; color: #fff; }
+    .aide { max-width: 360px; }
+    .aide label { display: block; font-weight: 600; margin: 12px 0 6px; }
+    .aide input { width: 100%; font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--bord); background: var(--carte); color: var(--texte); }
+    .aide code { background: var(--carte); border: 1px solid var(--bord); border-radius: 4px; padding: 0 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span>Debbo</span> Santé · Simulateur USSD</h1>
+    <nav><a href="/" target="_blank">Tableau de bord ↗</a></nav>
+  </header>
+
+  <div class="page">
+    <div class="telephone">
+      <div class="ecran" id="ecran">Composez *xxx# pour joindre Debbo Santé.</div>
+      <div class="commandes">
+        <button class="envoyer" id="envoyer">Composer *xxx#</button>
+        <button class="annuler" id="annuler">Raccrocher</button>
+      </div>
+      <div class="touches" id="touches"></div>
+    </div>
+
+    <div class="aide">
+      <h2>Comment tester</h2>
+      <p>Ce téléphone parle au vrai point d'entrée <code>POST /ussd</code>, au format des agrégateurs USSD : tout le parcours est renvoyé dans <code>text</code>, séparé par <code>*</code>.</p>
+      <label for="numero">Numéro de la femme (fictif)</label>
+      <input id="numero" value="+221770000101">
+      <p>Essayez : <strong>Urgence → Saignement</strong>, puis regardez l'alerte apparaître dans le tableau de bord. Un nouveau numéro passe d'abord par le choix de la langue.</p>
+    </div>
+  </div>
+
+  <script src="/static/simulateur.js"></script>
+</body>
+</html>

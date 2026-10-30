@@ -1,0 +1,176 @@
+/* Appli relais : grandes cibles tactiles (56 px et plus), fort contraste, peu de texte. */
+:root {
+  --fond: #f6f3ee;
+  --carte: #ffffff;
+  --texte: #1f1d1a;
+  --texte-doux: #6b655c;
+  --bord: #e3ddd3;
+  --accent: #0f6e5c;
+  --accent-doux: #e3f1ed;
+  --urgence: #b42318;
+  --urgence-doux: #fdecea;
+  --attention: #a15c07;
+  --attention-doux: #fdf3e2;
+  --ok: #1f7a3a;
+  --ok-doux: #e6f4ea;
+  --rayon: 14px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #161513;
+    --carte: #201f1c;
+    --texte: #f1ede6;
+    --texte-doux: #a59e93;
+    --bord: #36332e;
+    --accent: #4fc3a6;
+    --accent-doux: #173a32;
+    --urgence: #ff7b6e;
+    --urgence-doux: #3d1d1a;
+    --attention: #f0b45a;
+    --attention-doux: #3a2c16;
+    --ok: #6fd08c;
+    --ok-doux: #19301f;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-size: 17px;
+  line-height: 1.4;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app { max-width: 560px; margin: 0 auto; padding: 12px 16px 40px; }
+
+.statut {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--carte);
+  border-bottom: 1px solid var(--bord);
+  font-size: 14px;
+}
+
+.statut .point { width: 10px; height: 10px; border-radius: 50%; background: var(--texte-doux); flex: none; }
+.statut .point.en-ligne { background: var(--ok); }
+.statut .point.hors-ligne { background: var(--attention); }
+.statut .qui { font-weight: 700; margin-right: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.statut .doux { white-space: nowrap; font-size: 13px; }
+.statut button { min-height: 36px; width: auto; flex: none; padding: 4px 12px; font-size: 14px; }
+
+h1 { font-size: 22px; margin: 12px 0 4px; }
+h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--texte-doux); margin: 24px 0 8px; }
+p { margin: 8px 0; }
+.doux { color: var(--texte-doux); font-size: 15px; }
+
+button, .bouton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 56px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--rayon);
+  border: 1px solid var(--bord);
+  background: var(--carte);
+  color: var(--texte);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+button:active, .bouton:active { transform: scale(0.98); }
+button.principal, .bouton.principal { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.danger, .bouton.danger { background: var(--urgence); border-color: var(--urgence); color: #fff; }
+button.lien { background: none; border: none; color: var(--accent); min-height: 44px; width: auto; padding: 8px 0; }
+
+.urgence-geante { min-height: 88px; font-size: 24px; letter-spacing: 0.06em; margin: 8px 0 12px; }
+.pile { display: flex; flex-direction: column; gap: 10px; }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grille { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.grille button { font-size: 22px; }
+
+.femme {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  min-height: 64px;
+}
+
+.femme .nom { font-weight: 700; }
+.femme .details { font-weight: 400; font-size: 14px; color: var(--texte-doux); margin-top: 2px; }
+.fleche { color: var(--texte-doux); font-size: 22px; }
+
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--accent-doux);
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.badge.urgence { background: var(--urgence-doux); color: var(--urgence); }
+.badge.attention { background: var(--attention-doux); color: var(--attention); }
+
+.carte {
+  background: var(--carte);
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: 16px;
+}
+
+.verdict { border-radius: var(--rayon); padding: 20px 16px; text-align: center; margin: 12px 0; }
+.verdict .titre { font-size: 26px; font-weight: 800; letter-spacing: 0.03em; }
+.verdict.urgence { background: var(--urgence-doux); color: var(--urgence); }
+.verdict.consultation_24h { background: var(--attention-doux); color: var(--attention); }
+.verdict.conseil { background: var(--ok-doux); color: var(--ok); }
+
+.question { font-size: 26px; font-weight: 750; text-align: center; margin: 32px 0; min-height: 3em; }
+.progression { height: 6px; background: var(--bord); border-radius: 3px; overflow: hidden; margin: 8px 0; }
+.progression div { height: 100%; background: var(--accent); }
+.oui-non { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.oui-non button { min-height: 96px; font-size: 26px; }
+
+label { display: block; font-weight: 650; margin: 16px 0 6px; }
+input, textarea {
+  width: 100%;
+  font: inherit;
+  padding: 14px;
+  border-radius: var(--rayon);
+  border: 1px solid var(--bord);
+  background: var(--carte);
+  color: var(--texte);
+}
+
+input.mesure { font-size: 32px; text-align: center; font-weight: 700; }
+.case { display: flex; gap: 12px; align-items: flex-start; font-weight: 400; }
+.case input { width: 28px; height: 28px; flex: none; margin: 0; }
+
+.bandes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 8px; font-size: 13px; text-align: center; font-weight: 700; }
+.bandes span { padding: 6px; border-radius: 8px; }
+.bandes .rouge { background: var(--urgence-doux); color: var(--urgence); }
+.bandes .jaune { background: var(--attention-doux); color: var(--attention); }
+.bandes .vert { background: var(--ok-doux); color: var(--ok); }
+
+.bandeau { border-radius: var(--rayon); padding: 12px 14px; margin: 8px 0; font-size: 15px; }
+.bandeau.attention { background: var(--attention-doux); color: var(--attention); }
+.bandeau.ok { background: var(--ok-doux); color: var(--ok); }
+.bandeau.erreur { background: var(--urgence-doux); color: var(--urgence); }
