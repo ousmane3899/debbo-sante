@@ -11,7 +11,7 @@ from datetime import date, timedelta
 from app import config
 from app.clinical import moteur
 from app.comptes import creer_relais, creer_soignant
-from app.db import Base, SessionLocal, engine, init_db
+from app.db import SessionLocal, init_db, vider_base
 from app.models import DemandeRappel, Femme, Identite, maintenant
 from app.planning import enregistrer_accouchement, planifier_grossesse
 from app.referral import faire_transition, ouvrir_alerte
@@ -30,7 +30,7 @@ COMPTES_DEMO = [
 def peupler() -> None:
     if config.EN_PROD:
         sys.exit("Refusé : python -m app.seed efface la base, il ne tourne pas en production.")
-    Base.metadata.drop_all(engine)
+    vider_base()
     init_db()
     aujourdhui = date.today()
     with SessionLocal() as session:

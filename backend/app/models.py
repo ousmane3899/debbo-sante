@@ -8,7 +8,7 @@ connaissent la femme que par son pseudonyme `Femme.code`.
 import secrets
 from datetime import date, datetime, timezone
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -26,6 +26,9 @@ class Identite(Base):
     """Coffre d'identité : seul endroit où figurent le nom et le numéro de téléphone.
 
     Une femme inscrite par une relais peut ne pas avoir de téléphone.
+
+    Consentement en trois niveaux séparés (cahier des charges, §8) ; refuser
+    la recherche ou l'IA ne prive jamais du service.
     """
 
     __tablename__ = "identite"
@@ -35,6 +38,12 @@ class Identite(Base):
     nom: Mapped[str | None] = mapped_column(String(128))
     langue: Mapped[str | None] = mapped_column(String(8))
     consentement_service: Mapped[bool] = mapped_column(Boolean, default=False)
+    consentement_recherche: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    consentement_ia: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    consentement_at: Mapped[datetime | None] = mapped_column(DateTime)
+    consentement_par: Mapped[str | None] = mapped_column(String(64))  # ussd, relais:R-0001…
+    effacement_demande_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    efface_at: Mapped[datetime | None] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=maintenant)
 
     femme: Mapped["Femme | None"] = relationship(back_populates="identite", uselist=False)

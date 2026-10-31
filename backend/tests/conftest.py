@@ -1,6 +1,7 @@
 import os
 
-os.environ["DEBBO_DATABASE_URL"] = "sqlite://"
+# SQLite en mémoire par défaut ; scripts/tester_postgres.py fait tourner la même suite sur PostgreSQL.
+os.environ["DEBBO_DATABASE_URL"] = os.environ.get("DEBBO_TEST_DATABASE_URL", "sqlite://")
 os.environ["DEBBO_PLANIFICATEUR"] = "0"  # les tests appellent le planificateur eux-mêmes
 
 import pytest  # noqa: E402
@@ -8,7 +9,8 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app import securite  # noqa: E402
 from app.comptes import creer_relais, creer_soignant  # noqa: E402
-from app.db import Base, SessionLocal, engine, init_db  # noqa: E402
+from app import models  # noqa: E402, F401
+from app.db import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
 
 securite.SCRYPT_N = 2**10  # tests rapides ; la production garde 2**15
@@ -24,8 +26,11 @@ def nouveau_client() -> TestClient:
 
 @pytest.fixture(autouse=True)
 def base_vide():
-    init_db()
+    # Le schéma des tests vient directement du modèle ; test_migrations.py vérifie que
+    # les migrations produisent exactement le même.
+    Base.metadata.create_all(engine)
     yield
+    engine.dispose()  # ferme les connexions restées ouvertes avant de supprimer les tables
     Base.metadata.drop_all(engine)
 
 

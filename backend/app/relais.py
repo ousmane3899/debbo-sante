@@ -26,6 +26,7 @@ from app.planning import (
 )
 from app.rappels import fermer_taches, taches_ouvertes
 from app.referral import ETATS_ACTIFS, ouvrir_alerte
+from app.vie_privee import demander_effacement, enregistrer_consentement
 
 router = APIRouter(prefix="/api/relais")
 
@@ -67,6 +68,8 @@ def _femme(session: Session, relais: Relais, ref: dict | None) -> Femme:
         femme = session.scalar(select(Femme).where(Femme.client_uid == ref.get("uid")))
     if femme is None:
         raise OperationRefusee("Femme introuvable")
+    if femme.statut == "effacee" or femme.identite.effacement_demande_at is not None:
+        raise OperationRefusee("Cette femme a demandé l'effacement de ses données")
     if femme.relais_id != relais.id and femme.zone != relais.zone:
         raise OperationRefusee("Cette femme n'est pas dans la zone de la relais")
     return femme
@@ -84,7 +87,8 @@ def _inscription(session: Session, relais: Relais, d: dict, instant: datetime) -
     if identite is None:
         identite = Identite(telephone=telephone)
     identite.nom = d["nom"].strip()
-    identite.consentement_service = True
+    enregistrer_consentement(identite, instant, f"relais:{relais.code}", service=True,
+                             recherche=bool(d.get("consentement_recherche")), ia=bool(d.get("consentement_ia")))
     femme = Femme(identite=identite, relais=relais, zone=relais.zone, client_uid=d.get("uid"))
     planifier_grossesse(femme, int(d.get("mois", 0)), instant.date())
     session.add(femme)
@@ -168,6 +172,11 @@ def _contact_realise(session: Session, relais: Relais, d: dict, instant: datetim
     return {}
 
 
+def _effacement(session: Session, relais: Relais, d: dict, instant: datetime) -> dict:
+    femme = _femme(session, relais, d.get("femme"))
+    return {"effacement": demander_effacement(session, femme.identite, instant, f"relais:{relais.code}")}
+
+
 TRAITEMENTS = {
     "inscription": _inscription,
     "visite": _visite,
@@ -175,6 +184,7 @@ TRAITEMENTS = {
     "accouchement": _accouchement,
     "contact_realise": _contact_realise,
     "vaccin_fait": _vaccin_fait,
+    "effacement": _effacement,
 }
 
 
@@ -216,7 +226,8 @@ def _enfant(e, aujourdhui: date) -> dict:
 def dossier(session: Session, relais: Relais) -> dict:
     aujourdhui = date.today()
     femmes = session.scalars(
-        select(Femme).where(or_(Femme.relais_id == relais.id, Femme.zone == relais.zone)).order_by(Femme.created_at)
+        select(Femme).where(or_(Femme.relais_id == relais.id, Femme.zone == relais.zone), Femme.statut != "effacee")
+        .order_by(Femme.created_at)
     ).all()
     lignes = []
     for f in femmes:

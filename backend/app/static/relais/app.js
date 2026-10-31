@@ -79,7 +79,8 @@ function femmes() {
       alerte_active: null,
       locale: true,
     }));
-  return [...connues, ...locales].map((f) => ({
+  const effacees = etat.file.filter((op) => op.type === "effacement");
+  return [...connues, ...locales].filter((f) => !effacees.some((op) => memeFemme(op.donnees.femme, f))).map((f) => ({
     ...f,
     enAttente: f.locale || etat.file.some((op) => memeFemme(op.donnees.femme, f)),
   }));
@@ -312,7 +313,9 @@ function vueFemme(f) {
       ${venue ? `<button data-action="venue" data-contact="${contact.id}">Elle est allée à sa consultation</button>` : ""}
       ${f.statut === "enceinte" && !f.locale ? `<button data-action="aller" data-href="#/accouchement/${encodeURIComponent(cle(f))}">Elle a accouché</button>` : ""}
     </div>
-    ${(f.enfants ?? []).map((e) => carteEnfant(f, e)).join("")}`;
+    ${(f.enfants ?? []).map((e) => carteEnfant(f, e)).join("")}
+    <p></p>
+    <button class="lien" data-action="effacer" data-cle="${echapper(cle(f))}">Elle demande l'effacement de ses données</button>`;
 }
 
 function carteEnfant(f, e) {
@@ -350,6 +353,9 @@ function vueInscription() {
       ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((m) => `<button data-action="mois" data-mois="${m}">${m}</button>`).join("")}
     </div>
     <label class="case"><input type="checkbox" id="accord"> J'ai expliqué Debbo à la femme : elle est d'accord pour être suivie.</label>
+    <p class="doux">Deux choix facultatifs. Si elle refuse, son suivi reste exactement le même.</p>
+    <label class="case"><input type="checkbox" id="accord-recherche"> Elle accepte que ses données, sans son nom ni son numéro, servent à la recherche sur la santé des mères.</label>
+    <label class="case"><input type="checkbox" id="accord-ia"> Elle accepte que ses réponses, sans son nom ni son numéro, aident à améliorer l'assistant de Debbo.</label>
     <div id="message"></div>
     <p></p>
     <button class="principal" data-action="inscrire">Enregistrer</button>`;
@@ -605,7 +611,11 @@ const actions = {
       return;
     }
     const uid = nouvelId();
-    await ajouter("inscription", { uid, nom, telephone: telephone || null, mois, consentement: true });
+    await ajouter("inscription", {
+      uid, nom, telephone: telephone || null, mois, consentement: true,
+      consentement_recherche: document.getElementById("accord-recherche").checked,
+      consentement_ia: document.getElementById("accord-ia").checked,
+    });
     location.hash = `#/femme/${encodeURIComponent(uid)}`;
   },
   "visite-contexte": (d) => {
@@ -668,6 +678,18 @@ const actions = {
   bebes: (d, bouton) => {
     document.querySelectorAll("#bebes button").forEach((b) => b.classList.toggle("principal", b === bouton));
     document.getElementById("bebes").dataset.choix = d.bebes;
+  },
+  effacer: async (d) => {
+    const f = trouver(d.cle);
+    if (!f || !confirm(`Effacer les données de ${f.nom} ? Debbo ne la suivra plus. Une urgence en cours reste suivie jusqu'à sa fin.`)) return;
+    if (f.locale) {
+      // Jamais envoyée : il suffit de l'oublier sur ce téléphone.
+      etat.file = etat.file.filter((op) => !(op.type === "inscription" && op.donnees.uid === f.uid) && !memeFemme(op.donnees.femme, f));
+      await sauver();
+    } else {
+      await ajouter("effacement", { femme: ref(f) });
+    }
+    location.hash = "#/";
   },
   vaccin: async (d) => {
     await ajouter("vaccin_fait", { seance_id: Number(d.seance) });

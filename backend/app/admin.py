@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from app import journal
 from app.auth import exiger, fermer_sessions
 from app.db import get_session
-from app.models import JournalAcces, Utilisateur
+from app.models import Femme, JournalAcces, Utilisateur, maintenant
+from app.vie_privee import demander_effacement
 
 router = APIRouter(prefix="/api/admin")
 admin = exiger("admin")
@@ -56,6 +57,19 @@ def reinitialiser_2fa(identifiant: str, request: Request, a: Utilisateur = Depen
     journal.tracer(db, "2fa_reinitialisee", a.id, u.identifiant, _ip(request))
     db.commit()
     return {"identifiant": u.identifiant, "totp_actif": False}
+
+
+@router.post("/femmes/{code}/effacer")
+def effacer_femme(code: str, request: Request, a: Utilisateur = Depends(admin),
+                  db: Session = Depends(get_session)) -> dict:
+    """Demande d'effacement reçue au poste (par écrit ou en personne) ; l'admin ne voit pas le dossier."""
+    femme = db.scalar(select(Femme).where(Femme.code == code))
+    if femme is None:
+        raise HTTPException(404, "Femme introuvable")
+    resultat = demander_effacement(db, femme.identite, maintenant(), f"admin:{a.identifiant}")
+    journal.tracer(db, "effacement_saisi_par_admin", a.id, code, _ip(request))
+    db.commit()
+    return {"code": code, "effacement": resultat}
 
 
 @router.get("/journal")

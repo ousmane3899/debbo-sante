@@ -11,9 +11,10 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from app import admin, auth, config, rappels, relais, telephonie, ussd
+from app import admin, auth, config, rappels, recherche, relais, telephonie, ussd, vie_privee
 from app.api import router
 from app.db import SessionLocal, get_session, init_db
+from app.models import maintenant
 
 journal_serveur = logging.getLogger("debbo")
 INTERVALLE_PLANIFICATEUR = 60  # secondes
@@ -38,6 +39,7 @@ METHODES_ECRITURE = {"POST", "PUT", "PATCH", "DELETE"}
 def _tour_planificateur() -> None:
     with SessionLocal() as session:
         bilan = rappels.tour(session)
+        bilan["effacements"] = vie_privee.traiter_effacements_en_attente(session, maintenant())
     if any(bilan.values()):
         journal_serveur.info("Debbo m'appelle : %s", bilan)
 
@@ -53,7 +55,7 @@ async def _boucle_planificateur() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    init_db()
+    init_db(migrer_automatiquement=not config.EN_PROD)
     tache = asyncio.create_task(_boucle_planificateur()) if config.PLANIFICATEUR_ACTIF else None
     yield
     if tache:
@@ -92,6 +94,7 @@ app.include_router(router)
 app.include_router(relais.router)
 app.include_router(admin.router)
 app.include_router(telephonie.router)
+app.include_router(recherche.router)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 # Appli des relais : servie sous /relais/ pour que son service worker couvre tout ce chemin.
 app.mount("/relais", StaticFiles(directory=STATIC / "relais", html=True), name="relais")

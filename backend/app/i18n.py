@@ -14,7 +14,7 @@ TEXTES: dict[str, dict[str, str]] = {
         "choix_langue": "Debbo Sante\n1 Pulaar\n2 Wolof\n3 Francais",
         "menu": (
             "Debbo Sante\n1 Urgence\n2 Je suis enceinte\n3 Mes rendez-vous\n"
-            "4 Etre rappelee\n5 Conseils\n0 Parler a une sage-femme"
+            "4 Etre rappelee\n5 Conseils\n6 Mes donnees\n0 Parler a une sage-femme"
         ),
         "urgence_menu": (
             "URGENCE - quel signe ?\n1 Saignement\n2 Convulsions\n3 Mal de tete fort/vue trouble\n"
@@ -57,6 +57,26 @@ TEXTES: dict[str, dict[str, str]] = {
         ),
         "conseil_pf": "La sage-femme peut vous conseiller en toute confidentialite. Choisissez 4 dans le menu pour etre rappelee.",
         "invalide": "Reponse non comprise. Recomposez le code pour recommencer.",
+        "donnees_menu": "Mes donnees\n1 Effacer mes donnees\n2 Recherche et statistiques\n3 Amelioration de l'assistant",
+        "effacement_confirmer": (
+            "Effacer toutes vos donnees ? Debbo ne vous suivra plus et ne vous appellera plus.\n1 Oui, effacer\n2 Non"
+        ),
+        "effacement_fait": "C'est fait : vos donnees sont effacees. Le menu Urgence reste toujours ouvert pour vous.",
+        "effacement_en_attente": (
+            "Demande enregistree. Debbo ne vous appellera plus. "
+            "L'effacement sera fait a la fin de votre prise en charge en cours."
+        ),
+        "effacement_annule": "Rien n'a ete efface.",
+        "aucune_donnee": "Debbo n'a aucune donnee sur ce numero.",
+        "consentement_recherche": (
+            "Vos donnees, sans votre nom ni votre numero, peuvent aider la recherche sur la sante des meres. "
+            "D'accord ?\n1 Oui\n2 Non"
+        ),
+        "consentement_ia": (
+            "Vos reponses, sans votre nom ni votre numero, peuvent aider a ameliorer l'assistant de Debbo. "
+            "D'accord ?\n1 Oui\n2 Non"
+        ),
+        "choix_enregistre": "Votre choix est enregistre. Il ne change rien a votre suivi.",
         # Appels sortants (textes des messages vocaux ; en production, fichiers audio enregistrés).
         # Formulation neutre : le téléphone peut être partagé, rien ne doit trahir une grossesse.
         "appel_veille_contact": (

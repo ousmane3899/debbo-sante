@@ -155,7 +155,8 @@ def traiter_rappel(rappel_id: int, request: Request, u: Utilisateur = Depends(so
 
 
 def _femmes_visibles(u: Utilisateur, session: Session) -> list[Femme]:
-    return [f for f in session.scalars(select(Femme).order_by(Femme.created_at.desc())).all() if voit(u, f.zone)]
+    femmes = session.scalars(select(Femme).where(Femme.statut != "effacee").order_by(Femme.created_at.desc())).all()
+    return [f for f in femmes if voit(u, f.zone)]
 
 
 @router.get("/femmes")
@@ -221,7 +222,7 @@ def vaccinations(jours: int = 7, u: Utilisateur = Depends(soignant), session: Se
             "en_retard": s.date_prevue < aujourdhui - TOLERANCE_VACCIN,
         }
         for s in seances
-        if voit(u, s.enfant.mere.zone)
+        if voit(u, s.enfant.mere.zone) and s.enfant.mere.statut != "effacee"
     ]
 
 

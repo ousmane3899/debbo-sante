@@ -33,6 +33,32 @@ couvre aujourd'hui la phase MVP.
 
 L'identité (numéro) est stockée à part des données de santé (`Identite`).
 
+## Base de données et migrations
+
+SQLite en développement, PostgreSQL en production (`DEBBO_DATABASE_URL`, par exemple
+`postgresql+psycopg://debbo:…@hote/debbo`). Le schéma évolue par migrations Alembic
+(`backend/migrations/versions/`), jamais en recréant les tables.
+
+```bash
+cd backend
+../.venv/Scripts/alembic upgrade head                       # amener la base à la dernière version
+../.venv/Scripts/alembic revision --autogenerate -m "…"     # après une modification de app/models.py
+```
+
+- En développement, le serveur migre la base tout seul au démarrage.
+- En production, il **refuse de démarrer** sur une base en retard : sauvegarder, puis `alembic upgrade head`.
+- Toute nouvelle migration doit passer `tests/test_migrations.py` : schéma identique au modèle, descente et remontée.
+- Une valeur par défaut d'une colonne booléenne s'écrit `sa.false()`, jamais `'0'` (refusé par PostgreSQL).
+
+## Consentement et effacement
+
+| Droit | Où |
+| --- | --- |
+| Consentement en trois niveaux séparés : service (obligatoire pour être suivie), recherche, amélioration de l'assistant (facultatifs, refusés par défaut) | inscription USSD et relais ; USSD « 6 Mes données » pour changer d'avis |
+| Effacement (« Debbo, oublie-moi ») : nom, téléphone, langue et notes libres supprimés, suivi arrêté ; événements de santé gardés sans identité pour les statistiques | USSD « 6 Mes données → 1 », appli relais, admin (`POST /api/admin/femmes/{code}/effacer`) |
+| Pendant une urgence en cours, l'effacement attend la clôture de l'alerte ; les rappels s'arrêtent tout de suite | `app/vie_privee.py` |
+| Jeu de données de recherche : femmes d'accord seulement, pseudonyme à clé, mois au lieu des dates, zones de moins de 10 femmes fusionnées | `GET /api/recherche/export` (district) |
+
 ## Sécurité
 
 | Mesure | Où |
@@ -81,7 +107,8 @@ Un vrai fournisseur implémente `Fournisseur.appeler` (`app/telephonie.py`) et r
 ### Production
 
 `DEBBO_ENV=prod` coupe le simulateur et la documentation de l'API, active HSTS, et exige
-`DEBBO_USSD_SECRET` et `DEBBO_TELEPHONIE_SECRET`. Il refuse de démarrer avec le fournisseur de téléphonie
+`DEBBO_USSD_SECRET`, `DEBBO_TELEPHONIE_SECRET` et `DEBBO_SECRET_PSEUDONYMES` (clé des pseudonymes de recherche,
+à garder secrète et stable). Il refuse de démarrer avec le fournisseur de téléphonie
 simulé, sauf si le planificateur est coupé (`DEBBO_PLANIFICATEUR=0`). Le serveur doit être derrière HTTPS (cookie `Secure`, service worker).
 
 ## Lancer en local
@@ -102,7 +129,12 @@ Puis ouvrir http://localhost:8000 (tableau de bord), http://localhost:8000/relai
 cd backend
 ../.venv/Scripts/python -m pytest
 node --test tests/js/moteur.test.mjs
+../.venv/Scripts/python scripts/tester_postgres.py    # toute la suite sur un PostgreSQL jetable
 ```
+
+`tester_postgres.py` crée une instance PostgreSQL neuve dans un dossier temporaire (programmes
+cherchés dans `PG_BIN`, le PATH ou `C:\Program Files\PostgreSQL`), puis la détruit ; il ne touche
+à aucune base existante.
 
 Toute modification de `regles.json` doit repasser le banc de scénarios, côté serveur et côté appli.
 

@@ -17,9 +17,10 @@ from sqlalchemy.orm import Session
 
 from app.clinical import moteur
 from app.i18n import LANGUES, t
-from app.models import DemandeRappel, Femme, Identite
+from app.models import DemandeRappel, Femme, Identite, maintenant
 from app.planning import planifier_grossesse, prochain_contact
 from app.referral import ouvrir_alerte
+from app.vie_privee import changer_consentement, demander_effacement, enregistrer_consentement
 
 SIGNES_URGENCE = {
     "1": "saignement",
@@ -46,10 +47,16 @@ class Parcours:
     def con(self, cle: str, **valeurs) -> str:
         return "CON " + t(cle, self.langue, **valeurs)
 
-    def end(self, cle: str, **valeurs) -> str:
-        if self.langue and self.identite.langue != self.langue:
-            self.identite.langue = self.langue
-        self.session.add(self.identite)
+    def end(self, cle: str, garder_langue: bool = True, **valeurs) -> str:
+        """Fin de session : c'est seulement ici que la base est modifiée.
+
+        garder_langue=False : ne rien enregistrer de nouveau sur la femme (effacement,
+        numéro inconnu) ; seules les modifications déjà faites sont validées.
+        """
+        if garder_langue:
+            if self.langue and self.identite.langue != self.langue:
+                self.identite.langue = self.langue
+            self.session.add(self.identite)
         self.session.commit()
         return "END " + t(cle, self.langue, **valeurs)
 
@@ -73,7 +80,8 @@ def repondre(session: Session, telephone: str, text: str, aujourdhui: date | Non
     if not saisies:
         return p.con("menu")
     choix, reste = saisies[0], saisies[1:]
-    actions = {"1": urgence, "2": inscription, "3": rendez_vous, "4": rappel, "5": conseils, "0": parler_sf}
+    actions = {"1": urgence, "2": inscription, "3": rendez_vous, "4": rappel, "5": conseils, "6": mes_donnees,
+               "0": parler_sf}
     action = actions.get(choix)
     return action(p, reste) if action else p.end("invalide")
 
@@ -114,7 +122,7 @@ def inscription(p: Parcours, reste: list[str]) -> str:
     if not reste[0].isdigit() or not 1 <= int(reste[0]) <= 9:
         return p.end("invalide")
 
-    p.identite.consentement_service = True
+    enregistrer_consentement(p.identite, maintenant(), "ussd", service=True)
     femme = Femme(identite=p.identite)
     contacts = planifier_grossesse(femme, int(reste[0]), p.aujourdhui)
     p.session.add(femme)
@@ -144,6 +152,33 @@ def conseils(p: Parcours, reste: list[str]) -> str:
         return p.con("conseils_menu")
     cle = CONSEILS.get(reste[0])
     return p.end(cle) if cle else p.end("invalide")
+
+
+def mes_donnees(p: Parcours, reste: list[str]) -> str:
+    """Effacer ses données, ou changer ses choix pour la recherche et l'IA."""
+    if not reste:
+        return p.con("donnees_menu")
+    choix, suite = reste[0], reste[1:]
+    if choix == "1":
+        if not suite:
+            return p.con("effacement_confirmer")
+        if suite[0] != "1":
+            return p.end("effacement_annule")
+        if p.identite.id is None:
+            return p.end("aucune_donnee", garder_langue=False)  # numéro inconnu : rien à effacer
+        resultat = demander_effacement(p.session, p.identite, maintenant(), "ussd")
+        return p.end("effacement_fait" if resultat == "efface" else "effacement_en_attente", garder_langue=False)
+    niveau = {"2": "recherche", "3": "ia"}.get(choix)
+    if niveau is None:
+        return p.end("invalide")
+    if not suite:
+        return p.con(f"consentement_{niveau}")
+    if suite[0] not in ("1", "2"):
+        return p.end("invalide")
+    if p.identite.id is None:
+        return p.end("aucune_donnee", garder_langue=False)
+    changer_consentement(p.session, p.identite, niveau, suite[0] == "1", maintenant(), "ussd")
+    return p.end("choix_enregistre")
 
 
 def parler_sf(p: Parcours, reste: list[str]) -> str:

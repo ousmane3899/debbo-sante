@@ -23,6 +23,13 @@ TELEPHONIE = os.environ.get("DEBBO_TELEPHONIE", "simule")
 TELEPHONIE_SECRET = os.environ.get("DEBBO_TELEPHONIE_SECRET") or None
 PLANIFICATEUR_ACTIF = os.environ.get("DEBBO_PLANIFICATEUR", "1") == "1"
 
+# Clé des pseudonymes du jeu de données de recherche : sans elle, impossible de relier
+# une ligne du jeu de données à une femme. À garder secrète et stable.
+SECRET_PSEUDONYMES = os.environ.get("DEBBO_SECRET_PSEUDONYMES") or None
+if EN_PROD and not SECRET_PSEUDONYMES:
+    raise RuntimeError("DEBBO_SECRET_PSEUDONYMES est obligatoire quand DEBBO_ENV=prod")
+SECRET_PSEUDONYMES = SECRET_PSEUDONYMES or "cle-de-developpement-uniquement"
+
 if EN_PROD and PLANIFICATEUR_ACTIF and TELEPHONIE == "simule":
     raise RuntimeError("En production, branchez un vrai fournisseur (DEBBO_TELEPHONIE) ou DEBBO_PLANIFICATEUR=0")
 if EN_PROD and not TELEPHONIE_SECRET:
