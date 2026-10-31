@@ -78,6 +78,10 @@ async def securite(request: Request, appel_suivant):
         reponse.headers.setdefault(nom, valeur)
     if request.url.path.startswith("/api/"):
         reponse.headers["Cache-Control"] = "no-store"
+    else:
+        # Interface : le navigateur revérifie chaque fichier (304 s'il n'a pas changé),
+        # pour qu'une mise à jour soit vue tout de suite par les soignants.
+        reponse.headers.setdefault("Cache-Control", "no-cache")
     if config.EN_PROD:
         reponse.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return reponse

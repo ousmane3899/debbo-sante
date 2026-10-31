@@ -12,6 +12,7 @@ couvre aujourd'hui la phase MVP.
 | Banc de scénarios critiques (cible : 100 % bien classés) | `backend/tests/scenarios/critiques.json` | 37 scénarios |
 | Parcours USSD : urgence, inscription, rendez-vous, rappel, conseils | `backend/app/ussd.py` | Français rédigé ; pulaar et wolof à écrire |
 | Calendrier de suivi (8 contacts prénatals OMS, 4 postnatals) | `backend/app/planning.py` | — |
+| Suivi de l'enfant 0-24 mois : calendrier vaccinal PEV par enfant (jumeaux compris), repérage zéro dose, Penta 3 | `backend/app/clinical/pev.json`, `backend/app/planning.py` | Calendrier en **brouillon**, à valider par la région médicale |
 | « Debbo m'appelle » : appel la veille de chaque consultation, 2 essais, puis visite de la relais ; relance des consultations manquées | `backend/app/rappels.py` | Fournisseur de téléphonie **simulé** ; vrai fournisseur à brancher |
 | Boucle de référence : alerte → appel → transport → arrivée | `backend/app/referral.py` | Paiement mobile money à brancher |
 | Tableau de bord sage-femme | `backend/app/static/index.html` | Connexion avec double authentification |
@@ -69,6 +70,8 @@ Le serveur lance le planificateur chaque minute (`app/rappels.py`) :
 - pas de réponse : nouvel essai 3 h plus tard ; après 2 essais, la relais reçoit une visite à faire ;
 - femme sans téléphone : la relais reçoit directement la visite à faire ;
 - consultation manquée depuis 7 jours : appel de relance et visite de la relais ;
+- mêmes règles pour les vaccins de chaque enfant (veille de la séance ; relance et visite après 14 jours de retard) ;
+- jamais plus d'un appel par femme et par jour (la visite postnatale et les vaccins des 6 semaines tombent le même jour) ;
 - aucun appel entre 20 h et 8 h, même en retard. Une visite de la relais clôt les visites demandées.
 
 En développement, le fournisseur est simulé : les appels apparaissent dans `/simulateur`, où l'on répond à la place de la femme.
@@ -109,6 +112,6 @@ Toute modification de `regles.json` doit repasser le banc de scénarios, côté 
 - Interface d'administration des comptes (aujourd'hui : ligne de commande et API).
 - Rattachement à une zone des femmes inscrites par USSD (aujourd'hui visibles de toutes les sages-femmes).
 - Textes pulaar et wolof validés par 2 locuteurs natifs et 1 clinicien.
-- Règles cliniques signées par les référents médicaux.
+- Règles cliniques signées par les référents médicaux ; calendrier PEV vérifié (VPI 2, MenA).
 - Branchements : agrégateur USSD/SMS/voix, fournisseur d'appels sortants (messages enregistrés en pulaar et wolof), mobile money, export DHIS2.
 - Déclaration CDP et analyse d'impact sur la protection des données.

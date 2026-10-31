@@ -1,0 +1,16 @@
+{
+  "version": "2026.10-brouillon",
+  "statut": "BROUILLON - à vérifier avec le calendrier du Programme élargi de vaccination (PEV) du Sénégal en vigueur, notamment VPI 2 et MenA",
+  "source": "Calendrier PEV du Sénégal (schéma usuel), à confirmer par la région médicale",
+  "seances": [
+    {"cle": "naissance", "nom": "Naissance", "age_jours": 0, "antigenes": ["BCG", "VPO 0", "HepB 0"]},
+    {"cle": "6sem", "nom": "6 semaines", "age_jours": 42, "antigenes": ["Penta 1", "VPO 1", "PCV 1", "Rota 1"]},
+    {"cle": "10sem", "nom": "10 semaines", "age_jours": 70, "antigenes": ["Penta 2", "VPO 2", "PCV 2", "Rota 2"]},
+    {"cle": "14sem", "nom": "14 semaines", "age_jours": 98, "antigenes": ["Penta 3", "VPO 3", "PCV 3", "VPI"]},
+    {"cle": "9mois", "nom": "9 mois", "age_jours": 274, "antigenes": ["RR 1", "VAA (fièvre jaune)"]},
+    {"cle": "15mois", "nom": "15 mois", "age_jours": 456, "antigenes": ["RR 2"]}
+  ],
+  "seance_penta1": "6sem",
+  "seance_penta3": "14sem",
+  "tolerance_retard_jours": 14
+}

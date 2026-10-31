@@ -138,6 +138,18 @@ function ligneFemme(f) {
     </div>`;
 }
 
+function ligneVaccin(v) {
+  return `
+    <div class="ligne ${v.en_retard ? "retard" : ""}">
+      <div>
+        <div><strong>${echapper(v.seance)}</strong> · ${echapper(v.mere)}${v.rang > 1 ? ` (bébé ${v.rang})` : ""}
+          ${v.en_retard ? `<span class="badge urgence">En retard</span>` : ""}</div>
+        <div class="meta">${v.antigenes.map(echapper).join(" · ")} · prévu le ${jour(v.date_prevue)}${v.telephone ? ` · ${echapper(v.telephone)}` : ""}</div>
+      </div>
+      <button data-vaccin="${v.id}">Fait</button>
+    </div>`;
+}
+
 function tuiles(i) {
   const liste = [
     [i.alertes_actives, "alertes en cours"],
@@ -148,6 +160,8 @@ function tuiles(i) {
     [duree(i.delai_median_arrivee_min), "délai médian alerte → arrivée"],
     [i.taux_reponse_7j == null ? "–" : `${i.taux_reponse_7j} %`, `appels de Debbo décrochés (${i.appels_7j} en 7 j)`],
     [i.taches_relais_ouvertes, "visites demandées aux relais"],
+    [i.enfants_zero_dose, `enfants zéro dose (sur ${i.enfants_suivis} suivis)`],
+    [i.part_penta3_a_jour == null ? "–" : `${i.part_penta3_a_jour} %`, "enfants à jour du Penta 3"],
   ];
   return liste.map(([valeur, libelle]) => `<div class="tuile"><div class="valeur">${valeur}</div><div class="libelle">${libelle}</div></div>`).join("");
 }
@@ -158,9 +172,10 @@ function remplir(id, elements, rendu, vide) {
 
 async function rafraichir() {
   try {
-    const [alertes, rappels, femmes, indicateurs] = await Promise.all([
-      api("/alertes"), api("/rappels"), api("/femmes"), api("/indicateurs"),
+    const [alertes, rappels, femmes, indicateurs, vaccinations] = await Promise.all([
+      api("/alertes"), api("/rappels"), api("/femmes"), api("/indicateurs"), api("/vaccinations"),
     ]);
+    remplir("vaccinations", vaccinations, ligneVaccin, "Aucune vaccination à prévoir.");
     remplir("alertes", alertes, carteAlerte, "Aucune alerte en cours.");
     remplir("rappels", rappels, ligneRappel, "Aucune demande en attente.");
     remplir("femmes", femmes, ligneFemme, "Aucune femme inscrite pour l'instant.");
@@ -177,6 +192,9 @@ document.addEventListener("click", async (evenement) => {
     transition(bouton.dataset.alerte, bouton.dataset.etat);
   } else if (bouton.dataset.rappel) {
     await api(`/rappels/${bouton.dataset.rappel}/traiter`, { method: "POST" });
+    rafraichir();
+  } else if (bouton.dataset.vaccin) {
+    await api(`/vaccinations/${bouton.dataset.vaccin}/fait`, { method: "POST" });
     rafraichir();
   } else if (bouton.dataset.contact) {
     await api(`/contacts/${bouton.dataset.contact}/realise`, { method: "POST" });

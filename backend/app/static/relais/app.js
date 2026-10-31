@@ -92,11 +92,15 @@ const TACHES = {
   injoignable: "Debbo n'arrive pas à la joindre",
   consultation_manquee: "Consultation manquée",
   rappel_sans_telephone: "Lui rappeler sa consultation de demain",
+  vaccin_manque: "Vaccin de l'enfant en retard",
+  rappel_vaccin_sans_telephone: "Lui rappeler les vaccins de demain",
 };
+
+const enfantsEnRetard = (f) => (f.enfants ?? []).filter((e) => e.seances_en_retard);
 
 function priorite(f) {
   if (f.alerte_active) return 0;
-  if (f.taches?.length || f.contacts_en_retard) return 1;
+  if (f.taches?.length || f.contacts_en_retard || enfantsEnRetard(f).length) return 1;
   if (f.prochain_contact && joursAvant(f.prochain_contact.date) <= 3) return 2;
   if (f.locale) return 3;
   return null;
@@ -212,6 +216,10 @@ function ligneFemme(f) {
   if (f.prochain_contact && joursAvant(f.prochain_contact.date) <= 7) {
     badges.push(`<span class="badge attention">${echapper(f.prochain_contact.type)} ${jour(f.prochain_contact.date)}</span>`);
   }
+  if ((f.enfants ?? []).some((e) => e.zero_dose)) badges.push(`<span class="badge urgence">Enfant zéro dose</span>`);
+  else if (enfantsEnRetard(f).length && !(f.taches ?? []).some((t) => t.motif === "vaccin_manque")) {
+    badges.push(`<span class="badge attention">Vaccin en retard</span>`);
+  }
   if (f.statut === "postpartum") badges.push(`<span class="badge">A accouché</span>`);
   if (f.enAttente) badges.push(`<span class="badge">À envoyer</span>`);
   return `
@@ -303,6 +311,29 @@ function vueFemme(f) {
       <button class="danger" data-action="aller" data-href="#/urgence/${encodeURIComponent(cle(f))}">Urgence</button>
       ${venue ? `<button data-action="venue" data-contact="${contact.id}">Elle est allée à sa consultation</button>` : ""}
       ${f.statut === "enceinte" && !f.locale ? `<button data-action="aller" data-href="#/accouchement/${encodeURIComponent(cle(f))}">Elle a accouché</button>` : ""}
+    </div>
+    ${(f.enfants ?? []).map((e) => carteEnfant(f, e)).join("")}`;
+}
+
+function carteEnfant(f, e) {
+  const prochaine = e.prochaine_seance;
+  const enAttente = prochaine && etat.file.some((op) => op.type === "vaccin_fait" && op.donnees.seance_id === prochaine.id);
+  const etatVaccins = e.zero_dose
+    ? `<div class="bandeau erreur">Zéro dose : aucun vaccin Penta 1. Accompagnez la mère au poste de santé.</div>`
+    : e.seances_en_retard
+      ? `<div class="bandeau attention">${e.seances_en_retard} séance(s) de vaccins en retard.</div>`
+      : `<div class="bandeau ok">Vaccins à jour.</div>`;
+  return `
+    <h2>${(f.enfants.length > 1 ? `Bébé ${e.rang}` : "Bébé")} · né le ${jour(e.date_naissance)}</h2>
+    <div class="carte">
+      ${etatVaccins}
+      ${prochaine
+        ? `<p>Prochains vaccins : <strong>${echapper(prochaine.nom)}</strong>, prévus le ${jour(prochaine.date)}</p>
+           <p class="doux">${prochaine.antigenes.map(echapper).join(" · ")}</p>
+           ${enAttente
+             ? `<p class="doux">Vaccination enregistrée, en attente d'envoi.</p>`
+             : `<button data-action="vaccin" data-seance="${prochaine.id}">L'enfant a reçu ces vaccins</button>`}`
+        : `<p>Tous les vaccins du calendrier sont faits.</p>`}
     </div>`;
 }
 
@@ -424,7 +455,11 @@ function vueAccouchement(f) {
     <h1>${echapper(f.nom)} a accouché</h1>
     <label for="date">Date de l'accouchement</label>
     <input id="date" type="date" value="${aujourdhuiIso()}" max="${aujourdhuiIso()}">
-    <p class="doux">Debbo planifiera ses consultations après l'accouchement (jours 1, 3, 7 et 42).</p>
+    <label>Combien de bébés vivants ?</label>
+    <div class="grille" id="bebes" data-choix="1">
+      ${[0, 1, 2, 3].map((n) => `<button data-action="bebes" data-bebes="${n}" class="${n === 1 ? "principal" : ""}">${n}</button>`).join("")}
+    </div>
+    <p class="doux">Debbo planifiera les consultations de la mère (jours 1, 3, 7 et 42) et les vaccins de chaque bébé.</p>
     <button class="principal" data-action="accouchement" data-cle="${echapper(cle(f))}">Enregistrer</button>`;
 }
 
@@ -626,8 +661,17 @@ const actions = {
   accouchement: async (d) => {
     const date = document.getElementById("date").value;
     if (!date) return;
-    await ajouter("accouchement", { femme: ref(trouver(d.cle)), date });
+    const bebes = Number(document.getElementById("bebes").dataset.choix);
+    await ajouter("accouchement", { femme: ref(trouver(d.cle)), date, bebes });
     location.hash = `#/femme/${encodeURIComponent(d.cle)}`;
+  },
+  bebes: (d, bouton) => {
+    document.querySelectorAll("#bebes button").forEach((b) => b.classList.toggle("principal", b === bouton));
+    document.getElementById("bebes").dataset.choix = d.bebes;
+  },
+  vaccin: async (d) => {
+    await ajouter("vaccin_fait", { seance_id: Number(d.seance) });
+    rendre();
   },
   "effacer-erreurs": async () => {
     etat.erreurs = [];

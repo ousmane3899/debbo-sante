@@ -75,6 +75,43 @@ class Femme(Base):
     visites: Mapped[list["Visite"]] = relationship(
         back_populates="femme", order_by="Visite.date", cascade="all, delete-orphan"
     )
+    enfants: Mapped[list["Enfant"]] = relationship(
+        back_populates="mere", order_by="Enfant.rang", cascade="all, delete-orphan"
+    )
+
+
+class Enfant(Base):
+    """Enfant suivi de 0 à 24 mois, rattaché à sa mère (pas d'identité propre)."""
+
+    __tablename__ = "enfant"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(16), unique=True, default=lambda: "EN-" + secrets.token_hex(3).upper())
+    mere_id: Mapped[int] = mapped_column(ForeignKey("femme.id"), index=True)
+    rang: Mapped[int] = mapped_column(Integer, default=1)  # 1, 2… pour des jumeaux
+    date_naissance: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=maintenant)
+
+    mere: Mapped["Femme"] = relationship(back_populates="enfants")
+    seances: Mapped[list["SeanceVaccin"]] = relationship(
+        back_populates="enfant", order_by="SeanceVaccin.date_prevue", cascade="all, delete-orphan"
+    )
+
+
+class SeanceVaccin(Base):
+    """Une séance du calendrier vaccinal (plusieurs antigènes le même jour)."""
+
+    __tablename__ = "seance_vaccin"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    enfant_id: Mapped[int] = mapped_column(ForeignKey("enfant.id"), index=True)
+    cle: Mapped[str] = mapped_column(String(16))  # naissance, 6sem… (voir clinical/pev.json)
+    nom: Mapped[str] = mapped_column(String(32))
+    antigenes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    date_prevue: Mapped[date] = mapped_column(Date)
+    date_realisee: Mapped[date | None] = mapped_column(Date)
+
+    enfant: Mapped[Enfant] = relationship(back_populates="seances")
 
 
 class Contact(Base):
@@ -255,7 +292,8 @@ class AppelSortant(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     femme_id: Mapped[int] = mapped_column(ForeignKey("femme.id"), index=True)
     contact_id: Mapped[int | None] = mapped_column(ForeignKey("contact.id"))
-    motif: Mapped[str] = mapped_column(String(24))  # veille_contact | relance
+    seance_id: Mapped[int | None] = mapped_column(ForeignKey("seance_vaccin.id"))
+    motif: Mapped[str] = mapped_column(String(24))  # veille_contact | relance | veille_vaccin | relance_vaccin
     tentative: Mapped[int] = mapped_column(Integer, default=1)
     prevu_at: Mapped[datetime] = mapped_column(DateTime, index=True)
     statut: Mapped[str] = mapped_column(String(16), default="prevu", index=True)
@@ -267,19 +305,23 @@ class AppelSortant(Base):
 
     femme: Mapped[Femme] = relationship()
     contact: Mapped[Contact | None] = relationship()
+    seance: Mapped[SeanceVaccin | None] = relationship()
 
 
 class TacheRelais(Base):
-    """Visite demandée à la relais : femme injoignable, consultation manquée, femme sans téléphone."""
+    """Visite demandée à la relais : femme injoignable, consultation ou vaccin manqué, femme sans téléphone."""
 
     __tablename__ = "tache_relais"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     femme_id: Mapped[int] = mapped_column(ForeignKey("femme.id"), index=True)
     contact_id: Mapped[int | None] = mapped_column(ForeignKey("contact.id"))
-    motif: Mapped[str] = mapped_column(String(32))  # injoignable | consultation_manquee | rappel_sans_telephone
+    seance_id: Mapped[int | None] = mapped_column(ForeignKey("seance_vaccin.id"))
+    motif: Mapped[str] = mapped_column(String(32))
+    # injoignable | consultation_manquee | rappel_sans_telephone | vaccin_manque | rappel_vaccin_sans_telephone
     created_at: Mapped[datetime] = mapped_column(DateTime, default=maintenant)
     faite_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     femme: Mapped[Femme] = relationship()
     contact: Mapped[Contact | None] = relationship()
+    seance: Mapped[SeanceVaccin | None] = relationship()

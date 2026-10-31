@@ -217,3 +217,8 @@ def test_secret_de_l_agregateur_ussd(client, monkeypatch):
 
 def test_reponses_api_non_mises_en_cache(sf):
     assert sf.get("/api/alertes").headers["cache-control"] == "no-store"
+
+
+def test_fichiers_de_l_interface_toujours_reverifies(client):
+    assert client.get("/static/dashboard.js").headers["cache-control"] == "no-cache"
+    assert client.get("/relais/app.js").headers["cache-control"] == "no-cache"

@@ -67,6 +67,15 @@ TEXTES: dict[str, dict[str, str]] = {
             "Bonjour, ici Debbo Sante. Vous aviez un rendez-vous au poste de sante. Il n'est pas trop tard. "
             "Appuyez sur 1 si vous pourrez y aller cette semaine. Appuyez sur 2 pour etre rappelee par une sage-femme."
         ),
+        "appel_veille_vaccin": (
+            "Bonjour, ici Debbo Sante. Votre enfant a rendez-vous demain au poste de sante pour ses vaccins. "
+            "Appuyez sur 1 si vous pourrez y aller. Appuyez sur 2 pour etre rappelee par une sage-femme."
+        ),
+        "appel_relance_vaccin": (
+            "Bonjour, ici Debbo Sante. Votre enfant n'a pas encore recu tous ses vaccins. Il n'est pas trop tard. "
+            "Appuyez sur 1 si vous pourrez aller au poste de sante cette semaine. "
+            "Appuyez sur 2 pour etre rappelee par une sage-femme."
+        ),
     },
     "ff": {},
     "wo": {},

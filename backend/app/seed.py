@@ -13,7 +13,7 @@ from app.clinical import moteur
 from app.comptes import creer_relais, creer_soignant
 from app.db import Base, SessionLocal, engine, init_db
 from app.models import DemandeRappel, Femme, Identite, maintenant
-from app.planning import planifier_grossesse
+from app.planning import enregistrer_accouchement, planifier_grossesse
 from app.referral import faire_transition, ouvrir_alerte
 
 # Comptes de démonstration (développement uniquement).
@@ -61,6 +61,17 @@ def peupler() -> None:
         planifier_grossesse(demain, 5, aujourdhui)
         demain.contacts[0].date_prevue = aujourdhui + timedelta(days=1)
         session.add(demain)
+
+        # Bébé de 2 mois sans Penta 1 : enfant « zéro dose », visite demandée à la relais.
+        identite = Identite(nom="Femme démo 6 (bébé de 2 mois)", telephone="+221770000102", langue="ff",
+                            consentement_service=True)
+        jeune_mere = Femme(identite=identite, relais=relais, zone="Démo")
+        naissance = aujourdhui - timedelta(days=62)
+        enregistrer_accouchement(jeune_mere, naissance, naissance, bebes=1)
+        for c in jeune_mere.contacts:
+            c.date_realisee = c.date_prevue
+        jeune_mere.enfants[0].seances[0].date_realisee = naissance
+        session.add(jeune_mere)
 
         urgence = ouvrir_alerte(session, femmes[1].identite, moteur.evaluer(["saignement", "urgence_declaree"]), "grossesse", "ussd")
         urgence.created_at = maintenant() - timedelta(minutes=7)

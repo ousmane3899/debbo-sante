@@ -17,8 +17,13 @@ from app.auth import exiger
 from app.clinical import moteur
 from app.db import get_session
 from app.journal import tracer
-from app.models import Alerte, Contact, Femme, Identite, OperationSync, Relais, Utilisateur, Visite, maintenant
-from app.planning import contacts_en_retard, enregistrer_accouchement, planifier_grossesse, prochain_contact, terme_prevu
+from app.models import (
+    Alerte, Contact, Femme, Identite, OperationSync, Relais, SeanceVaccin, Utilisateur, Visite, maintenant,
+)
+from app.planning import (
+    contacts_en_retard, enregistrer_accouchement, planifier_grossesse, prochain_contact, prochaine_seance,
+    seances_en_retard, terme_prevu, zero_dose,
+)
 from app.rappels import fermer_taches, taches_ouvertes
 from app.referral import ETATS_ACTIFS, ouvrir_alerte
 
@@ -138,8 +143,19 @@ def _accouchement(session: Session, relais: Relais, d: dict, instant: datetime) 
         jour = date.fromisoformat(d.get("date", ""))
     except ValueError as erreur:
         raise OperationRefusee("Date d'accouchement invalide") from erreur
-    enregistrer_accouchement(femme, jour, instant.date())
-    return {"statut": femme.statut}
+    enregistrer_accouchement(femme, jour, instant.date(), int(d.get("bebes", 1)))
+    session.flush()
+    return {"statut": femme.statut, "enfants": [e.code for e in femme.enfants]}
+
+
+def _vaccin_fait(session: Session, relais: Relais, d: dict, instant: datetime) -> dict:
+    seance = session.get(SeanceVaccin, d.get("seance_id"))
+    if seance is None:
+        raise OperationRefusee("Séance de vaccination introuvable")
+    femme = _femme(session, relais, {"code": seance.enfant.mere.code})
+    seance.date_realisee = instant.date()
+    fermer_taches(session, femme, instant, seance=seance)
+    return {}
 
 
 def _contact_realise(session: Session, relais: Relais, d: dict, instant: datetime) -> dict:
@@ -158,6 +174,7 @@ TRAITEMENTS = {
     "alerte": _alerte,
     "accouchement": _accouchement,
     "contact_realise": _contact_realise,
+    "vaccin_fait": _vaccin_fait,
 }
 
 
@@ -176,6 +193,24 @@ def appliquer(session: Session, relais: Relais, op: OperationIn) -> dict:
     session.add(OperationSync(op_id=op.op_id, relais_id=relais.id, type=op.type, resultat=resultat))
     session.commit()
     return {"op_id": op.op_id, "statut": "ok", **resultat}
+
+
+def _seance(s: SeanceVaccin) -> dict:
+    return {"id": s.id, "nom": s.nom, "antigenes": s.antigenes, "date": s.date_prevue.isoformat(),
+            "faite": s.date_realisee.isoformat() if s.date_realisee else None}
+
+
+def _enfant(e, aujourdhui: date) -> dict:
+    prochaine = prochaine_seance(e)
+    return {
+        "code": e.code,
+        "rang": e.rang,
+        "date_naissance": e.date_naissance.isoformat(),
+        "prochaine_seance": _seance(prochaine) if prochaine else None,
+        "seances_en_retard": len(seances_en_retard(e, aujourdhui)),
+        "zero_dose": zero_dose(e, aujourdhui),
+        "seances": [_seance(s) for s in e.seances],
+    }
 
 
 def dossier(session: Session, relais: Relais) -> dict:
@@ -207,6 +242,7 @@ def dossier(session: Session, relais: Relais) -> dict:
                 "derniere_visite": f.visites[-1].date.isoformat() + "Z" if f.visites else None,
                 "alerte_active": {"niveau": alerte.niveau, "etat": alerte.etat} if alerte else None,
                 "taches": [{"motif": t.motif, "depuis": t.created_at.isoformat() + "Z"} for t in taches_ouvertes(session, f)],
+                "enfants": [_enfant(e, aujourdhui) for e in f.enfants],
             }
         )
     return {

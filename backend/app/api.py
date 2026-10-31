@@ -19,8 +19,13 @@ from app.auth import exiger
 from app.clinical import moteur
 from app.db import get_session
 from app.journal import tracer
-from app.models import Alerte, AppelSortant, Contact, DemandeRappel, Femme, Identite, TacheRelais, Utilisateur, maintenant
-from app.planning import contacts_en_retard, prochain_contact, terme_prevu
+from app.models import (
+    Alerte, AppelSortant, Contact, DemandeRappel, Enfant, Femme, Identite, SeanceVaccin, TacheRelais, Utilisateur,
+    maintenant,
+)
+from app.planning import (
+    TOLERANCE_VACCIN, contacts_en_retard, penta3_a_jour, prochain_contact, terme_prevu, zero_dose,
+)
 from app.rappels import fermer_taches
 from app.referral import ETATS_ACTIFS, TransitionInvalide, doit_escalader, faire_transition, minutes_entre
 
@@ -194,6 +199,45 @@ def contact_realise(contact_id: int, request: Request, u: Utilisateur = Depends(
     return {"id": contact.id, "date_realisee": _iso(contact.date_realisee)}
 
 
+@router.get("/vaccinations")
+def vaccinations(jours: int = 7, u: Utilisateur = Depends(soignant), session: Session = Depends(get_session)) -> list[dict]:
+    """Séances de vaccination à faire d'ici `jours` jours, retards compris."""
+    aujourdhui = date.today()
+    seances = session.scalars(
+        select(SeanceVaccin).where(SeanceVaccin.date_realisee.is_(None),
+                                   SeanceVaccin.date_prevue <= aujourdhui + timedelta(days=jours))
+        .order_by(SeanceVaccin.date_prevue)
+    ).all()
+    return [
+        {
+            "id": s.id,
+            "enfant": s.enfant.code,
+            "rang": s.enfant.rang,
+            "mere": s.enfant.mere.identite.nom or s.enfant.mere.code,
+            "telephone": s.enfant.mere.identite.telephone,
+            "seance": s.nom,
+            "antigenes": s.antigenes,
+            "date_prevue": _iso(s.date_prevue),
+            "en_retard": s.date_prevue < aujourdhui - TOLERANCE_VACCIN,
+        }
+        for s in seances
+        if voit(u, s.enfant.mere.zone)
+    ]
+
+
+@router.post("/vaccinations/{seance_id}/fait")
+def vaccination_faite(seance_id: int, request: Request, u: Utilisateur = Depends(soignant),
+                      session: Session = Depends(get_session)) -> dict:
+    seance = session.get(SeanceVaccin, seance_id)
+    if seance is None or not voit(u, seance.enfant.mere.zone):
+        raise HTTPException(404, "Séance introuvable")
+    seance.date_realisee = date.today()
+    fermer_taches(session, seance.enfant.mere, maintenant(), seance=seance)
+    tracer(session, "vaccination_faite", u.id, f"seance:{seance.id}", request.client.host if request.client else None)
+    session.commit()
+    return {"id": seance.id, "date_realisee": _iso(seance.date_realisee)}
+
+
 @router.get("/indicateurs")
 def indicateurs(u: Utilisateur = Depends(soignant), session: Session = Depends(get_session)) -> dict:
     alertes = [a for a in session.scalars(select(Alerte)).all() if voit(u, zone_alerte(a))]
@@ -219,6 +263,16 @@ def indicateurs(u: Utilisateur = Depends(soignant), session: Session = Depends(g
         "appels_7j": len(appels),
         "taux_reponse_7j": round(100 * sum(a.statut == "repondu" for a in appels) / len(appels)) if appels else None,
         "taches_relais_ouvertes": len(taches),
+        **_indicateurs_enfants([e for f in femmes for e in f.enfants], aujourdhui),
+    }
+
+
+def _indicateurs_enfants(enfants: list[Enfant], aujourdhui: date) -> dict:
+    comptes = [a for a in (penta3_a_jour(e, aujourdhui) for e in enfants) if a is not None]
+    return {
+        "enfants_suivis": len(enfants),
+        "enfants_zero_dose": sum(zero_dose(e, aujourdhui) for e in enfants),
+        "part_penta3_a_jour": round(100 * sum(comptes) / len(comptes)) if comptes else None,
     }
 
 
