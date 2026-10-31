@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from app import admin, auth, config, rappels, recherche, relais, telephonie, ussd, vie_privee
+from app import admin, auth, config, dhis2, rappels, recherche, relais, telephonie, ussd, vie_privee
 from app.api import router
 from app.db import SessionLocal, get_session, init_db
 from app.models import maintenant
@@ -95,6 +95,7 @@ app.include_router(relais.router)
 app.include_router(admin.router)
 app.include_router(telephonie.router)
 app.include_router(recherche.router)
+app.include_router(dhis2.router)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 # Appli des relais : servie sous /relais/ pour que son service worker couvre tout ce chemin.
 app.mount("/relais", StaticFiles(directory=STATIC / "relais", html=True), name="relais")

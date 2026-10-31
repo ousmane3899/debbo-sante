@@ -23,6 +23,18 @@
 
   <div class="indicateurs" id="indicateurs"></div>
 
+  <section id="dhis2" class="dhis2" hidden>
+    <h2>Rapport mensuel DHIS2</h2>
+    <div class="dhis2-barre">
+      <label for="dhis2-mois">Mois</label>
+      <input type="month" id="dhis2-mois">
+      <button id="dhis2-envoyer" class="principal" disabled>Envoyer à DHIS2</button>
+      <span id="dhis2-etat" class="meta"></span>
+    </div>
+    <div id="dhis2-tableau"></div>
+    <div id="dhis2-envois" class="meta"></div>
+  </section>
+
   <main>
     <section>
       <h2>Alertes en cours</h2>

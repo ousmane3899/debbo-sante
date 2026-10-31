@@ -218,7 +218,84 @@ api("/auth/moi").then(({ utilisateur: u }) => {
     return;
   }
   document.getElementById("utilisateur").textContent = `${u.nom} · ${ROLES[u.role]}${u.zone ? ` · ${u.zone}` : ""}`;
+  if (u.role === "district") activerDhis2();
   api("/regles").then((r) => { document.getElementById("regles-version").textContent = r.version; });
   rafraichir();
   setInterval(rafraichir, 5000);
 });
+
+// ---------- rapport mensuel DHIS2 (équipe de district) ----------
+
+function moisPrecedent() {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function tableauDhis2(r) {
+  const zones = Object.keys(r.totaux);
+  if (!zones.length) return `<p class="vide">Aucune activité enregistrée ce mois-là.</p>`;
+  const entete = zones
+    .map((z) => `<th>${echapper(z)}${r.zones[z] ? "" : ` <span class="badge">non reliée</span>`}</th>`)
+    .join("");
+  const lignes = Object.entries(r.elements)
+    .map(([cle, e]) => {
+      const cellules = zones.map((z) => `<td class="${e.relie && r.zones[z] ? "" : "non-relie"}">${r.totaux[z][cle] ?? 0}</td>`).join("");
+      return `<tr><td>${echapper(e.libelle)}${e.relie ? "" : ` <span class="badge">non relié</span>`}</td>${cellules}</tr>`;
+    })
+    .join("");
+  const zonesNonReliees = zones.filter((z) => !r.zones[z]);
+  const indicateursNonRelies = Object.values(r.elements).filter((e) => !e.relie).length;
+  const parties = [
+    zonesNonReliees.length ? `${zonesNonReliees.length} zone(s) (${zonesNonReliees.map(echapper).join(", ")})` : "",
+    indicateursNonRelies ? `${indicateursNonRelies} indicateur(s)` : "",
+  ].filter(Boolean);
+  const manques = parties.length
+    ? `<p class="avertissement">Pas encore relié à DHIS2 : ${parties.join(" et ")}. Ces valeurs ne seront pas envoyées.
+       Complétez <code>dhis2_correspondances.json</code> avec les identifiants du ministère.</p>`
+    : "";
+  return `<div class="defile"><table><thead><tr><th>Indicateur</th>${entete}</tr></thead><tbody>${lignes}</tbody></table></div>${manques}`;
+}
+
+async function chargerDhis2() {
+  const periode = document.getElementById("dhis2-mois").value;
+  if (!periode) return;
+  const etat = document.getElementById("dhis2-etat");
+  const bouton = document.getElementById("dhis2-envoyer");
+  try {
+    const r = await api(`/dhis2/apercu?periode=${periode}`);
+    document.getElementById("dhis2-tableau").innerHTML = tableauDhis2(r);
+    bouton.disabled = !r.configure || !r.valeurs_pretes;
+    etat.textContent = !r.configure
+      ? "Serveur DHIS2 non configuré : envoi impossible."
+      : `${r.valeurs_pretes} valeur(s) prête(s) à envoyer.`;
+    document.getElementById("dhis2-envois").innerHTML = r.envois.length
+      ? `Derniers envois : ${r.envois.map((e) => `${echapper(e.periode)} (${e.statut === "ok" ? "réussi" : "échec"}, ${e.nb_valeurs} valeurs)`).join(" · ")}`
+      : "Aucun envoi pour l'instant.";
+  } catch (erreur) {
+    etat.textContent = erreur.message;
+  }
+}
+
+async function envoyerDhis2() {
+  const periode = document.getElementById("dhis2-mois").value;
+  if (!confirm(`Envoyer les totaux de ${periode} à DHIS2 ? Un nouvel envoi du même mois remplace les valeurs précédentes.`)) return;
+  try {
+    const envoi = await api("/dhis2/envoyer", { method: "POST", body: JSON.stringify({ periode }) });
+    alert(envoi.statut === "ok" ? "Envoi réussi." : `Échec de l'envoi : ${envoi.resume.erreur}`);
+  } catch (erreur) {
+    alert(erreur.message);
+  }
+  chargerDhis2();
+}
+
+function activerDhis2() {
+  const champ = document.getElementById("dhis2-mois");
+  champ.value = moisPrecedent();
+  champ.max = new Date().toISOString().slice(0, 7);
+  champ.addEventListener("change", chargerDhis2);
+  document.getElementById("dhis2-envoyer").addEventListener("click", envoyerDhis2);
+  document.getElementById("dhis2").hidden = false;
+  chargerDhis2();
+}

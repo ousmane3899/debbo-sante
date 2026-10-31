@@ -228,3 +228,14 @@ dialog .actions { justify-content: flex-end; }
 .utilisateur a { color: var(--accent); font-weight: 600; text-decoration: none; }
 
 .ligne.appel { flex-direction: column; align-items: stretch; }
+
+.dhis2 { margin: 0 24px 20px; padding: 16px; background: var(--carte); border: 1px solid var(--bord); border-radius: var(--rayon); }
+.dhis2-barre { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.dhis2-barre input { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--bord); background: var(--fond); color: var(--texte); }
+.dhis2 .defile { overflow-x: auto; }
+.dhis2 table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.dhis2 th, .dhis2 td { padding: 6px 10px; border-bottom: 1px solid var(--bord); text-align: right; white-space: nowrap; }
+.dhis2 th:first-child, .dhis2 td:first-child { text-align: left; white-space: normal; }
+.dhis2 thead th { color: var(--texte-doux); font-weight: 600; }
+.dhis2 td.non-relie { color: var(--texte-doux); }
+.dhis2 .avertissement { margin: 10px 0 0; }

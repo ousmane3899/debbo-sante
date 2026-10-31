@@ -50,6 +50,21 @@ cd backend
 - Toute nouvelle migration doit passer `tests/test_migrations.py` : schéma identique au modèle, descente et remontée.
 - Une valeur par défaut d'une colonne booléenne s'écrit `sa.false()`, jamais `'0'` (refusé par PostgreSQL).
 
+## Export vers DHIS2
+
+Chaque mois, Debbo calcule des **totaux par zone** (jamais de dossier individuel) et les envoie au DHIS2
+national (`POST /api/dataValueSets`, période `AAAAMM`, jeton d'accès personnel). Indicateurs : inscriptions,
+consultations prénatales et postnatales, accouchements, naissances vivantes, urgences et arrivées au soin,
+Penta 1, Penta 3, RR 1, enfants zéro dose, visites des relais.
+
+- La correspondance avec les identifiants DHIS2 (éléments de données, structures) est dans
+  `backend/app/dhis2_correspondances.json`, **à compléter avec le ministère**. Tant qu'un identifiant
+  vaut `A_RENSEIGNER`, la valeur n'est pas envoyée et l'écran le signale.
+- L'équipe de district voit l'aperçu du mois et envoie depuis le tableau de bord ; chaque envoi est tracé.
+  Renvoyer un mois remplace ses valeurs dans DHIS2.
+- Tâche mensuelle possible : `python -m app.dhis2 envoyer --periode 2026-10` (`apercu` pour voir sans envoyer).
+- Réglages : `DEBBO_DHIS2_URL` (HTTPS obligatoire en production) et `DEBBO_DHIS2_JETON`.
+
 ## Consentement et effacement
 
 | Droit | Où |
@@ -145,5 +160,6 @@ Toute modification de `regles.json` doit repasser le banc de scénarios, côté 
 - Rattachement à une zone des femmes inscrites par USSD (aujourd'hui visibles de toutes les sages-femmes).
 - Textes pulaar et wolof validés par 2 locuteurs natifs et 1 clinicien.
 - Règles cliniques signées par les référents médicaux ; calendrier PEV vérifié (VPI 2, MenA).
-- Branchements : agrégateur USSD/SMS/voix, fournisseur d'appels sortants (messages enregistrés en pulaar et wolof), mobile money, export DHIS2.
+- Branchements : agrégateur USSD/SMS/voix, fournisseur d'appels sortants (messages enregistrés en pulaar et wolof), mobile money.
+- DHIS2 : identifiants des éléments et des structures (`dhis2_correspondances.json`), compte d'envoi et jeton, essai sur le serveur de test du ministère.
 - Déclaration CDP et analyse d'impact sur la protection des données.

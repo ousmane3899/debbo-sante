@@ -1,0 +1,21 @@
+{
+  "statut": "MODÈLE À COMPLÉTER : les identifiants (UID) des éléments de données et des structures sont à obtenir auprès du service du système d'information sanitaire du ministère. Tant qu'un identifiant vaut « A_RENSEIGNER », la valeur correspondante n'est pas envoyée.",
+  "dataSet": "A_RENSEIGNER",
+  "elements": {
+    "femmes_inscrites": {"libelle": "Femmes enceintes inscrites dans Debbo", "dataElement": "A_RENSEIGNER"},
+    "cpn_realisees": {"libelle": "Consultations prénatales réalisées (femmes suivies)", "dataElement": "A_RENSEIGNER"},
+    "pn_realisees": {"libelle": "Consultations postnatales réalisées (femmes suivies)", "dataElement": "A_RENSEIGNER"},
+    "accouchements": {"libelle": "Accouchements enregistrés", "dataElement": "A_RENSEIGNER"},
+    "naissances_vivantes": {"libelle": "Naissances vivantes enregistrées", "dataElement": "A_RENSEIGNER"},
+    "alertes_urgence": {"libelle": "Alertes d'urgence reçues", "dataElement": "A_RENSEIGNER"},
+    "urgences_arrivees": {"libelle": "Urgences arrivées à la structure de soins", "dataElement": "A_RENSEIGNER"},
+    "vaccins_penta1": {"libelle": "Enfants vaccinés Penta 1", "dataElement": "A_RENSEIGNER"},
+    "vaccins_penta3": {"libelle": "Enfants vaccinés Penta 3", "dataElement": "A_RENSEIGNER"},
+    "vaccins_rr1": {"libelle": "Enfants vaccinés RR 1", "dataElement": "A_RENSEIGNER"},
+    "enfants_zero_dose": {"libelle": "Enfants zéro dose en fin de mois", "dataElement": "A_RENSEIGNER"},
+    "visites_relais": {"libelle": "Visites à domicile des relais", "dataElement": "A_RENSEIGNER"}
+  },
+  "zones": {
+    "Démo": "A_RENSEIGNER"
+  }
+}

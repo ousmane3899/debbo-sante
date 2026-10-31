@@ -34,3 +34,7 @@ if EN_PROD and PLANIFICATEUR_ACTIF and TELEPHONIE == "simule":
     raise RuntimeError("En production, branchez un vrai fournisseur (DEBBO_TELEPHONIE) ou DEBBO_PLANIFICATEUR=0")
 if EN_PROD and not TELEPHONIE_SECRET:
     raise RuntimeError("DEBBO_TELEPHONIE_SECRET est obligatoire quand DEBBO_ENV=prod")
+
+# DHIS2 national : adresse du serveur et jeton d'accès personnel (« ApiToken ») du compte d'envoi.
+DHIS2_URL = os.environ.get("DEBBO_DHIS2_URL") or None
+DHIS2_JETON = os.environ.get("DEBBO_DHIS2_JETON") or None

@@ -334,3 +334,17 @@ class TacheRelais(Base):
     femme: Mapped[Femme] = relationship()
     contact: Mapped[Contact | None] = relationship()
     seance: Mapped[SeanceVaccin | None] = relationship()
+
+
+class EnvoiDhis2(Base):
+    """Trace de chaque envoi mensuel vers DHIS2, réussi ou non."""
+
+    __tablename__ = "envoi_dhis2"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    periode: Mapped[str] = mapped_column(String(7), index=True)  # AAAA-MM
+    lance_par: Mapped[int | None] = mapped_column(ForeignKey("utilisateur.id"))  # vide : tâche planifiée
+    at: Mapped[datetime] = mapped_column(DateTime, default=maintenant)
+    statut: Mapped[str] = mapped_column(String(8))  # ok | erreur
+    nb_valeurs: Mapped[int] = mapped_column(Integer, default=0)
+    resume: Mapped[dict] = mapped_column(JSON, default=dict)
