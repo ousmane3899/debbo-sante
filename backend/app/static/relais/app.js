@@ -87,9 +87,16 @@ function femmes() {
 
 const trouver = (c) => femmes().find((f) => cle(f) === c);
 
+// Visites demandées par Debbo (tâches) : pourquoi passer voir cette femme.
+const TACHES = {
+  injoignable: "Debbo n'arrive pas à la joindre",
+  consultation_manquee: "Consultation manquée",
+  rappel_sans_telephone: "Lui rappeler sa consultation de demain",
+};
+
 function priorite(f) {
   if (f.alerte_active) return 0;
-  if (f.contacts_en_retard) return 1;
+  if (f.taches?.length || f.contacts_en_retard) return 1;
   if (f.prochain_contact && joursAvant(f.prochain_contact.date) <= 3) return 2;
   if (f.locale) return 3;
   return null;
@@ -200,7 +207,8 @@ function rendreStatut() {
 function ligneFemme(f) {
   const badges = [];
   if (f.alerte_active) badges.push(`<span class="badge urgence">Alerte en cours</span>`);
-  if (f.contacts_en_retard) badges.push(`<span class="badge urgence">${f.contacts_en_retard} consultation(s) manquée(s)</span>`);
+  for (const t of f.taches ?? []) badges.push(`<span class="badge attention">${TACHES[t.motif] ?? echapper(t.motif)}</span>`);
+  if (f.contacts_en_retard && !(f.taches ?? []).some((t) => t.motif === "consultation_manquee")) badges.push(`<span class="badge urgence">${f.contacts_en_retard} consultation(s) manquée(s)</span>`);
   if (f.prochain_contact && joursAvant(f.prochain_contact.date) <= 7) {
     badges.push(`<span class="badge attention">${echapper(f.prochain_contact.type)} ${jour(f.prochain_contact.date)}</span>`);
   }
@@ -281,6 +289,7 @@ function vueFemme(f) {
     contact ? `<p>Prochaine consultation : <strong>${echapper(contact.type)} le ${jour(contact.date)}</strong></p>` : "",
     f.contacts_en_retard ? `<div class="bandeau erreur">${f.contacts_en_retard} consultation(s) manquée(s) : encouragez-la à aller au poste.</div>` : "",
     f.alerte_active ? `<div class="bandeau erreur">Alerte en cours au poste de santé.</div>` : "",
+    ...(f.taches ?? []).map((t) => `<div class="bandeau attention">Visite demandée : ${TACHES[t.motif] ?? echapper(t.motif)}. Faites une visite pour la clore.</div>`),
     f.enAttente ? `<div class="bandeau attention">Des informations attendent le réseau pour partir.</div>` : "",
   ];
   const venue = contact?.id && !etat.file.some((op) => op.type === "contact_realise" && op.donnees.contact_id === contact.id);

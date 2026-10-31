@@ -1,16 +1,22 @@
+import asyncio
 import hmac
-from contextlib import asynccontextmanager
+import logging
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from app import admin, auth, config, relais, ussd
+from app import admin, auth, config, rappels, relais, telephonie, ussd
 from app.api import router
-from app.db import get_session, init_db
+from app.db import SessionLocal, get_session, init_db
+
+journal_serveur = logging.getLogger("debbo")
+INTERVALLE_PLANIFICATEUR = 60  # secondes
 
 STATIC = Path(__file__).with_name("static")
 
@@ -29,10 +35,31 @@ ENTETES_SECURITE = {
 METHODES_ECRITURE = {"POST", "PUT", "PATCH", "DELETE"}
 
 
+def _tour_planificateur() -> None:
+    with SessionLocal() as session:
+        bilan = rappels.tour(session)
+    if any(bilan.values()):
+        journal_serveur.info("Debbo m'appelle : %s", bilan)
+
+
+async def _boucle_planificateur() -> None:
+    while True:
+        try:
+            await run_in_threadpool(_tour_planificateur)
+        except Exception:  # une erreur ne doit pas arrêter les rappels suivants
+            journal_serveur.exception("Échec du planificateur de rappels")
+        await asyncio.sleep(INTERVALLE_PLANIFICATEUR)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
+    tache = asyncio.create_task(_boucle_planificateur()) if config.PLANIFICATEUR_ACTIF else None
     yield
+    if tache:
+        tache.cancel()
+        with suppress(asyncio.CancelledError):
+            await tache
 
 
 app = FastAPI(title="Debbo Santé", version="0.2.0", lifespan=lifespan,
@@ -60,6 +87,7 @@ app.include_router(auth.router)
 app.include_router(router)
 app.include_router(relais.router)
 app.include_router(admin.router)
+app.include_router(telephonie.router)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 # Appli des relais : servie sous /relais/ pour que son service worker couvre tout ce chemin.
 app.mount("/relais", StaticFiles(directory=STATIC / "relais", html=True), name="relais")

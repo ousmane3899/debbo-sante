@@ -16,3 +16,14 @@ if EN_PROD and not USSD_SECRET:
     raise RuntimeError("DEBBO_USSD_SECRET est obligatoire quand DEBBO_ENV=prod")
 
 SIMULATEUR_ACTIF = not EN_PROD
+
+# Téléphonie sortante (« Debbo m'appelle »). Seul le fournisseur simulé existe pour l'instant :
+# il ne passe aucun vrai appel, le simulateur USSD permet d'y répondre.
+TELEPHONIE = os.environ.get("DEBBO_TELEPHONIE", "simule")
+TELEPHONIE_SECRET = os.environ.get("DEBBO_TELEPHONIE_SECRET") or None
+PLANIFICATEUR_ACTIF = os.environ.get("DEBBO_PLANIFICATEUR", "1") == "1"
+
+if EN_PROD and PLANIFICATEUR_ACTIF and TELEPHONIE == "simule":
+    raise RuntimeError("En production, branchez un vrai fournisseur (DEBBO_TELEPHONIE) ou DEBBO_PLANIFICATEUR=0")
+if EN_PROD and not TELEPHONIE_SECRET:
+    raise RuntimeError("DEBBO_TELEPHONIE_SECRET est obligatoire quand DEBBO_ENV=prod")

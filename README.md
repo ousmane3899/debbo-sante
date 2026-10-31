@@ -11,7 +11,8 @@ couvre aujourd'hui la phase MVP.
 | Moteur clinique déterministe (signes de danger OMS) | `backend/app/clinical/` | Règles en **brouillon**, à valider par les référents médicaux |
 | Banc de scénarios critiques (cible : 100 % bien classés) | `backend/tests/scenarios/critiques.json` | 37 scénarios |
 | Parcours USSD : urgence, inscription, rendez-vous, rappel, conseils | `backend/app/ussd.py` | Français rédigé ; pulaar et wolof à écrire |
-| Calendrier « Debbo m'appelle » (8 contacts prénatals OMS) | `backend/app/planning.py` | Calcul fait ; appels sortants à brancher |
+| Calendrier de suivi (8 contacts prénatals OMS, 4 postnatals) | `backend/app/planning.py` | — |
+| « Debbo m'appelle » : appel la veille de chaque consultation, 2 essais, puis visite de la relais ; relance des consultations manquées | `backend/app/rappels.py` | Fournisseur de téléphonie **simulé** ; vrai fournisseur à brancher |
 | Boucle de référence : alerte → appel → transport → arrivée | `backend/app/referral.py` | Paiement mobile money à brancher |
 | Tableau de bord sage-femme | `backend/app/static/index.html` | Connexion avec double authentification |
 | Simulateur de téléphone USSD | `/simulateur` | — |
@@ -59,10 +60,26 @@ cd backend
 
 Les comptes de démonstration (développement uniquement) sont dans `COMPTES_DEMO` de `app/seed.py`.
 
+## « Debbo m'appelle »
+
+Le serveur lance le planificateur chaque minute (`app/rappels.py`) :
+
+- la veille d'une consultation, à 10 h, Debbo appelle la femme (message neutre : le téléphone peut être partagé).
+  Touche 1 : elle confirme. Touche 2 : une sage-femme la rappelle ;
+- pas de réponse : nouvel essai 3 h plus tard ; après 2 essais, la relais reçoit une visite à faire ;
+- femme sans téléphone : la relais reçoit directement la visite à faire ;
+- consultation manquée depuis 7 jours : appel de relance et visite de la relais ;
+- aucun appel entre 20 h et 8 h, même en retard. Une visite de la relais clôt les visites demandées.
+
+En développement, le fournisseur est simulé : les appels apparaissent dans `/simulateur`, où l'on répond à la place de la femme.
+Un vrai fournisseur implémente `Fournisseur.appeler` (`app/telephonie.py`) et renvoie les résultats sur
+`POST /api/telephonie/resultat` avec le secret `DEBBO_TELEPHONIE_SECRET`.
+
 ### Production
 
 `DEBBO_ENV=prod` coupe le simulateur et la documentation de l'API, active HSTS, et exige
-`DEBBO_USSD_SECRET`. Le serveur doit être derrière HTTPS (cookie `Secure`, service worker).
+`DEBBO_USSD_SECRET` et `DEBBO_TELEPHONIE_SECRET`. Il refuse de démarrer avec le fournisseur de téléphonie
+simulé, sauf si le planificateur est coupé (`DEBBO_PLANIFICATEUR=0`). Le serveur doit être derrière HTTPS (cookie `Secure`, service worker).
 
 ## Lancer en local
 
@@ -93,5 +110,5 @@ Toute modification de `regles.json` doit repasser le banc de scénarios, côté 
 - Rattachement à une zone des femmes inscrites par USSD (aujourd'hui visibles de toutes les sages-femmes).
 - Textes pulaar et wolof validés par 2 locuteurs natifs et 1 clinicien.
 - Règles cliniques signées par les référents médicaux.
-- Branchements : agrégateur USSD/SMS/voix, appels sortants, mobile money, export DHIS2.
+- Branchements : agrégateur USSD/SMS/voix, fournisseur d'appels sortants (messages enregistrés en pulaar et wolof), mobile money, export DHIS2.
 - Déclaration CDP et analyse d'impact sur la protection des données.

@@ -19,6 +19,7 @@ from app.db import get_session
 from app.journal import tracer
 from app.models import Alerte, Contact, Femme, Identite, OperationSync, Relais, Utilisateur, Visite, maintenant
 from app.planning import contacts_en_retard, enregistrer_accouchement, planifier_grossesse, prochain_contact, terme_prevu
+from app.rappels import fermer_taches, taches_ouvertes
 from app.referral import ETATS_ACTIFS, ouvrir_alerte
 
 router = APIRouter(prefix="/api/relais")
@@ -103,6 +104,7 @@ def _visite(session: Session, relais: Relais, d: dict, instant: datetime) -> dic
             note=d.get("note"),
         )
     )
+    fermer_taches(session, femme, instant)  # la relais est passée : les visites demandées sont faites
     resultat = {"niveau": evaluation.niveau}
     if moteur.rang(evaluation.niveau) >= moteur.rang("consultation_24h"):
         alerte = _ouvrir(session, relais, femme.identite, evaluation, contexte, instant)
@@ -144,8 +146,9 @@ def _contact_realise(session: Session, relais: Relais, d: dict, instant: datetim
     contact = session.get(Contact, d.get("contact_id"))
     if contact is None:
         raise OperationRefusee("Contact introuvable")
-    _femme(session, relais, {"code": contact.femme.code})
+    femme = _femme(session, relais, {"code": contact.femme.code})
     contact.date_realisee = instant.date()
+    fermer_taches(session, femme, instant, contact)
     return {}
 
 
@@ -203,6 +206,7 @@ def dossier(session: Session, relais: Relais) -> dict:
                 "contacts_en_retard": len(contacts_en_retard(f, aujourdhui)),
                 "derniere_visite": f.visites[-1].date.isoformat() + "Z" if f.visites else None,
                 "alerte_active": {"niveau": alerte.niveau, "etat": alerte.etat} if alerte else None,
+                "taches": [{"motif": t.motif, "depuis": t.created_at.isoformat() + "Z"} for t in taches_ouvertes(session, f)],
             }
         )
     return {

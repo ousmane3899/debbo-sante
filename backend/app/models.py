@@ -245,3 +245,41 @@ class JournalAcces(Base):
     ip: Mapped[str | None] = mapped_column(String(64))
     precedente: Mapped[str] = mapped_column(String(64))
     empreinte: Mapped[str] = mapped_column(String(64))
+
+
+class AppelSortant(Base):
+    """Appel (ou SMS) que Debbo passe de lui-même à une femme : « Debbo m'appelle »."""
+
+    __tablename__ = "appel_sortant"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    femme_id: Mapped[int] = mapped_column(ForeignKey("femme.id"), index=True)
+    contact_id: Mapped[int | None] = mapped_column(ForeignKey("contact.id"))
+    motif: Mapped[str] = mapped_column(String(24))  # veille_contact | relance
+    tentative: Mapped[int] = mapped_column(Integer, default=1)
+    prevu_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    statut: Mapped[str] = mapped_column(String(16), default="prevu", index=True)
+    # prevu -> en_cours -> repondu | sans_reponse | echec ; ou annule
+    touche: Mapped[str | None] = mapped_column(String(4))  # réponse au menu vocal
+    reference: Mapped[str | None] = mapped_column(String(64), unique=True)  # identifiant chez le fournisseur
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=maintenant)
+    termine_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    femme: Mapped[Femme] = relationship()
+    contact: Mapped[Contact | None] = relationship()
+
+
+class TacheRelais(Base):
+    """Visite demandée à la relais : femme injoignable, consultation manquée, femme sans téléphone."""
+
+    __tablename__ = "tache_relais"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    femme_id: Mapped[int] = mapped_column(ForeignKey("femme.id"), index=True)
+    contact_id: Mapped[int | None] = mapped_column(ForeignKey("contact.id"))
+    motif: Mapped[str] = mapped_column(String(32))  # injoignable | consultation_manquee | rappel_sans_telephone
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=maintenant)
+    faite_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    femme: Mapped[Femme] = relationship()
+    contact: Mapped[Contact | None] = relationship()

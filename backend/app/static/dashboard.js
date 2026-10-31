@@ -6,7 +6,11 @@ const ETAPES = [
 ];
 const NIVEAUX = { urgence: "Urgence", consultation_24h: "Sous 24 h", conseil: "Conseil" };
 const CONTEXTES = { grossesse: "Grossesse", postpartum: "Post-partum", nouveau_ne: "Nouveau-né", enfant: "Enfant" };
-const MOTIFS = { sage_femme: "Veut parler à une sage-femme", rappel: "Demande de rappel" };
+const MOTIFS = {
+  sage_femme: "Veut parler à une sage-femme",
+  rappel: "Demande de rappel",
+  rappel_debbo: "A demandé un rappel pendant l'appel de Debbo",
+};
 const CRENEAUX = { matin: "le matin", apres_midi: "l'après-midi", soir: "le soir" };
 
 const echapper = (texte) =>
@@ -142,6 +146,8 @@ function tuiles(i) {
     [i.perdues_de_vue, "perdues de vue"],
     [i.part_arrivee_confirmee == null ? "–" : `${i.part_arrivee_confirmee} %`, "urgences arrivées au soin"],
     [duree(i.delai_median_arrivee_min), "délai médian alerte → arrivée"],
+    [i.taux_reponse_7j == null ? "–" : `${i.taux_reponse_7j} %`, `appels de Debbo décrochés (${i.appels_7j} en 7 j)`],
+    [i.taches_relais_ouvertes, "visites demandées aux relais"],
   ];
   return liste.map(([valeur, libelle]) => `<div class="tuile"><div class="valeur">${valeur}</div><div class="libelle">${libelle}</div></div>`).join("");
 }

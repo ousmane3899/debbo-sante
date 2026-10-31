@@ -1,6 +1,7 @@
 import os
 
 os.environ["DEBBO_DATABASE_URL"] = "sqlite://"
+os.environ["DEBBO_PLANIFICATEUR"] = "0"  # les tests appellent le planificateur eux-mêmes
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

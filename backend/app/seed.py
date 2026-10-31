@@ -53,6 +53,15 @@ def peupler() -> None:
             session.add(femme)
             femmes.append(femme)
 
+        # Consultation demain, au numéro par défaut du simulateur : son appel de veille
+        # (« Debbo m'appelle ») apparaît dans /simulateur dès le premier passage du planificateur.
+        identite = Identite(nom="Femme démo 5 (consultation demain)", telephone="+221770000101", langue="fr",
+                            consentement_service=True)
+        demain = Femme(identite=identite, relais=relais, zone="Démo")
+        planifier_grossesse(demain, 5, aujourdhui)
+        demain.contacts[0].date_prevue = aujourdhui + timedelta(days=1)
+        session.add(demain)
+
         urgence = ouvrir_alerte(session, femmes[1].identite, moteur.evaluer(["saignement", "urgence_declaree"]), "grossesse", "ussd")
         urgence.created_at = maintenant() - timedelta(minutes=7)
 

@@ -57,6 +57,16 @@ TEXTES: dict[str, dict[str, str]] = {
         ),
         "conseil_pf": "La sage-femme peut vous conseiller en toute confidentialite. Choisissez 4 dans le menu pour etre rappelee.",
         "invalide": "Reponse non comprise. Recomposez le code pour recommencer.",
+        # Appels sortants (textes des messages vocaux ; en production, fichiers audio enregistrés).
+        # Formulation neutre : le téléphone peut être partagé, rien ne doit trahir une grossesse.
+        "appel_veille_contact": (
+            "Bonjour, ici Debbo Sante. Vous avez rendez-vous demain au poste de sante. "
+            "Appuyez sur 1 si vous pourrez y aller. Appuyez sur 2 pour etre rappelee par une sage-femme."
+        ),
+        "appel_relance": (
+            "Bonjour, ici Debbo Sante. Vous aviez un rendez-vous au poste de sante. Il n'est pas trop tard. "
+            "Appuyez sur 1 si vous pourrez y aller cette semaine. Appuyez sur 2 pour etre rappelee par une sage-femme."
+        ),
     },
     "ff": {},
     "wo": {},

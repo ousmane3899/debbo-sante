@@ -7,7 +7,7 @@ rester invisible. Le district voit toutes les zones. L'admin gère les comptes
 mais ne voit aucun dossier.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from statistics import median
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -19,8 +19,9 @@ from app.auth import exiger
 from app.clinical import moteur
 from app.db import get_session
 from app.journal import tracer
-from app.models import Alerte, Contact, DemandeRappel, Femme, Identite, Utilisateur, maintenant
+from app.models import Alerte, AppelSortant, Contact, DemandeRappel, Femme, Identite, TacheRelais, Utilisateur, maintenant
 from app.planning import contacts_en_retard, prochain_contact, terme_prevu
+from app.rappels import fermer_taches
 from app.referral import ETATS_ACTIFS, TransitionInvalide, doit_escalader, faire_transition, minutes_entre
 
 ROLES_SANTE = ("sage_femme", "district")
@@ -187,6 +188,7 @@ def contact_realise(contact_id: int, request: Request, u: Utilisateur = Depends(
     if contact is None or not voit(u, contact.femme.zone):
         raise HTTPException(404, "Contact introuvable")
     contact.date_realisee = date.today()
+    fermer_taches(session, contact.femme, maintenant(), contact)
     tracer(session, "contact_realise", u.id, f"contact:{contact.id}", request.client.host if request.client else None)
     session.commit()
     return {"id": contact.id, "date_realisee": _iso(contact.date_realisee)}
@@ -201,6 +203,11 @@ def indicateurs(u: Utilisateur = Depends(soignant), session: Session = Depends(g
     femmes = _femmes_visibles(u, session)
     rappels = session.scalars(select(DemandeRappel).where(DemandeRappel.traitee_at.is_(None))).all()
     aujourdhui = date.today()
+    depuis = maintenant() - timedelta(days=7)
+    appels = [a for a in session.scalars(select(AppelSortant).where(AppelSortant.termine_at >= depuis)).all()
+              if a.statut in ("repondu", "sans_reponse", "echec") and voit(u, a.femme.zone)]
+    taches = [t for t in session.scalars(select(TacheRelais).where(TacheRelais.faite_at.is_(None))).all()
+              if voit(u, t.femme.zone)]
     return {
         "femmes_suivies": len(femmes),
         "perdues_de_vue": sum(1 for f in femmes if contacts_en_retard(f, aujourdhui)),
@@ -209,6 +216,9 @@ def indicateurs(u: Utilisateur = Depends(soignant), session: Session = Depends(g
         "part_arrivee_confirmee": round(100 * len(arrivees) / len(urgences)) if urgences else None,
         "delai_median_arrivee_min": median(delais) if delais else None,
         "rappels_en_attente": sum(1 for r in rappels if voit(u, zone_identite(r.identite))),
+        "appels_7j": len(appels),
+        "taux_reponse_7j": round(100 * sum(a.statut == "repondu" for a in appels) / len(appels)) if appels else None,
+        "taches_relais_ouvertes": len(taches),
     }
 
 
