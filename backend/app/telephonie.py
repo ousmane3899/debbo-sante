@@ -70,6 +70,8 @@ def resultat(corps: ResultatIn, session: Session = Depends(get_session)) -> dict
 @router.get("/api/simulateur/appels")
 def appels_simules(telephone: str, session: Session = Depends(get_session)) -> list[dict]:
     """Développement uniquement : les appels en cours vers ce numéro, pour y répondre depuis le simulateur."""
+    from app.rappels import message_appel
+
     if not config.SIMULATEUR_ACTIF:
         raise HTTPException(404)
     appels = session.scalars(
@@ -78,6 +80,6 @@ def appels_simules(telephone: str, session: Session = Depends(get_session)) -> l
         .order_by(AppelSortant.prevu_at)
     ).all()
     return [
-        {"reference": a.reference, "message": t(f"appel_{a.motif}", a.femme.identite.langue), "tentative": a.tentative}
+        {"reference": a.reference, "message": t(message_appel(a), a.femme.identite.langue), "tentative": a.tentative}
         for a in appels
     ]

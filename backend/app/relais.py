@@ -26,7 +26,7 @@ from app.planning import (
 )
 from app.rappels import fermer_taches, taches_ouvertes
 from app.referral import ETATS_ACTIFS, ouvrir_alerte
-from app.vie_privee import demander_effacement, enregistrer_consentement
+from app.vie_privee import demander_effacement, enregistrer_consentement, retirer_code
 
 router = APIRouter(prefix="/api/relais")
 
@@ -172,6 +172,12 @@ def _contact_realise(session: Session, relais: Relais, d: dict, instant: datetim
     return {}
 
 
+def _retirer_code(session: Session, relais: Relais, d: dict, instant: datetime) -> dict:
+    femme = _femme(session, relais, d.get("femme"))
+    retirer_code(session, femme.identite, f"relais:{relais.code}")
+    return {}
+
+
 def _effacement(session: Session, relais: Relais, d: dict, instant: datetime) -> dict:
     femme = _femme(session, relais, d.get("femme"))
     return {"effacement": demander_effacement(session, femme.identite, instant, f"relais:{relais.code}")}
@@ -185,6 +191,7 @@ TRAITEMENTS = {
     "contact_realise": _contact_realise,
     "vaccin_fait": _vaccin_fait,
     "effacement": _effacement,
+    "retirer_code": _retirer_code,
 }
 
 
@@ -254,6 +261,7 @@ def dossier(session: Session, relais: Relais) -> dict:
                 "alerte_active": {"niveau": alerte.niveau, "etat": alerte.etat} if alerte else None,
                 "taches": [{"motif": t.motif, "depuis": t.created_at.isoformat() + "Z"} for t in taches_ouvertes(session, f)],
                 "enfants": [_enfant(e, aujourdhui) for e in f.enfants],
+                "code_discret": bool(f.identite.code_hache),
             }
         )
     return {

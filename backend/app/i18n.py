@@ -57,7 +57,29 @@ TEXTES: dict[str, dict[str, str]] = {
         ),
         "conseil_pf": "La sage-femme peut vous conseiller en toute confidentialite. Choisissez 4 dans le menu pour etre rappelee.",
         "invalide": "Reponse non comprise. Recomposez le code pour recommencer.",
-        "donnees_menu": "Mes donnees\n1 Effacer mes donnees\n2 Recherche et statistiques\n3 Amelioration de l'assistant",
+        "donnees_menu": (
+            "Mes donnees\n1 Effacer mes donnees\n2 Recherche et statistiques\n3 Amelioration de l'assistant\n"
+            "4 Code personnel"
+        ),
+        "code_demande": "Entrez votre code personnel",
+        "code_incorrect": "Code incorrect. En cas d'urgence, choisissez 1 dans le menu : pas besoin de code.",
+        "code_verrouille": (
+            "Trop d'essais. Reessayez dans 30 minutes. En cas d'urgence, choisissez 1 dans le menu : pas besoin de code."
+        ),
+        "code_gerer": "Code personnel\n1 Changer le code\n2 Supprimer le code",
+        "code_nouveau": (
+            "Choisissez un code de 4 chiffres. Il sera demande avant de montrer vos informations. "
+            "L'urgence reste ouverte sans code."
+        ),
+        "code_confirmer": "Retapez le code",
+        "code_trop_simple": "Ce code est trop facile a deviner. Recommencez avec un autre code.",
+        "code_different": "Les deux codes sont differents. Rien n'a change.",
+        "code_enregistre": (
+            "Code enregistre. Debbo ne dira plus rien de personnel sans lui. "
+            "Code oublie : demandez a votre relais ou au poste de sante."
+        ),
+        "code_supprime": "Code supprime.",
+        "zone_choix": "Ou habitez-vous ?\n{zones}\n0 Je ne sais pas",
         "effacement_confirmer": (
             "Effacer toutes vos donnees ? Debbo ne vous suivra plus et ne vous appellera plus.\n1 Oui, effacer\n2 Non"
         ),
@@ -86,6 +108,11 @@ TEXTES: dict[str, dict[str, str]] = {
         "appel_relance": (
             "Bonjour, ici Debbo Sante. Vous aviez un rendez-vous au poste de sante. Il n'est pas trop tard. "
             "Appuyez sur 1 si vous pourrez y aller cette semaine. Appuyez sur 2 pour etre rappelee par une sage-femme."
+        ),
+        # Mode discret : aucun contenu, la femme consulte Debbo avec son code quand elle est seule.
+        "appel_discret": (
+            "Bonjour, ici Debbo Sante. Vous avez un message. Composez le code Debbo sur votre telephone "
+            "quand vous le pourrez. Appuyez sur 2 pour etre rappelee par une sage-femme."
         ),
         "appel_veille_vaccin": (
             "Bonjour, ici Debbo Sante. Votre enfant a rendez-vous demain au poste de sante pour ses vaccins. "

@@ -7,17 +7,25 @@ commençant par « CON » (écran suivant) ou « END » (fin de session).
 Rien n'est écrit en base avant un écran « END » : le parcours se relit donc
 toujours de la même façon pendant une session, même si la femme est nouvelle.
 Le menu Urgence passe avant tout : aucun consentement ni question ne le retarde.
+
+Mode discret : si la femme a choisi un code personnel, les menus qui montrent
+quelque chose de personnel (rendez-vous, inscription, mes données) le demandent
+d'abord. Urgence, rappel, conseils et « parler à une sage-femme » restent ouverts
+sans code : ils n'affichent rien de personnel, et une urgence n'attend jamais.
 """
 
+import unicodedata
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import securite
 from app.clinical import moteur
 from app.i18n import LANGUES, t
-from app.models import DemandeRappel, Femme, Identite, maintenant
+from app.journal import tracer
+from app.models import DemandeRappel, Femme, Identite, Relais, maintenant
 from app.planning import planifier_grossesse, prochain_contact
 from app.referral import ouvrir_alerte
 from app.vie_privee import changer_consentement, demander_effacement, enregistrer_consentement
@@ -35,6 +43,10 @@ SIGNES_URGENCE = {
 }
 CRENEAUX = {"1": "matin", "2": "apres_midi", "3": "soir"}
 CONSEILS = {"1": "conseil_grossesse", "2": "conseil_postpartum", "3": "conseil_bebe", "4": "conseil_pf"}
+CODE_MAX_ECHECS = 3
+CODE_VERROU = timedelta(minutes=30)
+CODES_TROP_SIMPLES = {"1234", "4321", "0123", "3210", "1212", "2580", "1122"}
+MAX_ZONES_ECRAN = 8  # un écran USSD ne dépasse pas 182 caractères
 
 
 @dataclass
@@ -80,10 +92,41 @@ def repondre(session: Session, telephone: str, text: str, aujourdhui: date | Non
     if not saisies:
         return p.con("menu")
     choix, reste = saisies[0], saisies[1:]
-    actions = {"1": urgence, "2": inscription, "3": rendez_vous, "4": rappel, "5": conseils, "6": mes_donnees,
-               "0": parler_sf}
+    actions = {"1": urgence, "2": protege(inscription), "3": protege(rendez_vous), "4": rappel, "5": conseils,
+               "6": protege(mes_donnees), "0": parler_sf}
     action = actions.get(choix)
     return action(p, reste) if action else p.end("invalide")
+
+
+def protege(action):
+    """Demande le code personnel avant un menu personnel, si la femme en a choisi un."""
+
+    def avec_code(p: Parcours, reste: list[str]) -> str:
+        identite = p.identite
+        if not identite.code_hache:
+            return action(p, reste)
+        if not reste:
+            return p.con("code_demande")
+        if identite.code_verrouille_jusqua and identite.code_verrouille_jusqua > maintenant():
+            return p.end("code_verrouille")
+        if not securite.verifier(reste[0], identite.code_hache):
+            identite.code_echecs += 1
+            if identite.code_echecs >= CODE_MAX_ECHECS:
+                identite.code_echecs, identite.code_verrouille_jusqua = 0, maintenant() + CODE_VERROU
+                tracer(p.session, "code_discret_verrouille", None, _cible(identite), "ussd")
+            return p.end("code_incorrect")
+        identite.code_echecs = 0
+        return action(p, reste[1:])
+
+    return avec_code
+
+
+def _cible(identite: Identite) -> str:
+    return identite.femme.code if identite.femme else f"identite:{identite.id}"
+
+
+def code_valide(code: str) -> bool:
+    return code.isdigit() and len(code) == 4 and len(set(code)) > 1 and code not in CODES_TROP_SIMPLES
 
 
 def urgence(p: Parcours, reste: list[str]) -> str:
@@ -122,8 +165,20 @@ def inscription(p: Parcours, reste: list[str]) -> str:
     if not reste[0].isdigit() or not 1 <= int(reste[0]) <= 9:
         return p.end("invalide")
 
+    # Sa zone : c'est elle qui décide quelle sage-femme voit son dossier.
+    zones = _zones(p.session)
+    zone = None
+    if zones:
+        if len(reste) < 2:
+            lignes = "\n".join(f"{i} {_sans_accents(z)}" for i, z in enumerate(zones, start=1))
+            return p.con("zone_choix", zones=lignes)
+        if reste[1] != "0":
+            if not reste[1].isdigit() or not 1 <= int(reste[1]) <= len(zones):
+                return p.end("invalide")
+            zone = zones[int(reste[1]) - 1]
+
     enregistrer_consentement(p.identite, maintenant(), "ussd", service=True)
-    femme = Femme(identite=p.identite)
+    femme = Femme(identite=p.identite, zone=zone)
     contacts = planifier_grossesse(femme, int(reste[0]), p.aujourdhui)
     p.session.add(femme)
     return p.end("inscrite", date=_jour(contacts[0].date_prevue) if contacts else "-")
@@ -168,6 +223,8 @@ def mes_donnees(p: Parcours, reste: list[str]) -> str:
             return p.end("aucune_donnee", garder_langue=False)  # numéro inconnu : rien à effacer
         resultat = demander_effacement(p.session, p.identite, maintenant(), "ussd")
         return p.end("effacement_fait" if resultat == "efface" else "effacement_en_attente", garder_langue=False)
+    if choix == "4":
+        return code_personnel(p, suite)
     niveau = {"2": "recherche", "3": "ia"}.get(choix)
     if niveau is None:
         return p.end("invalide")
@@ -179,6 +236,44 @@ def mes_donnees(p: Parcours, reste: list[str]) -> str:
         return p.end("aucune_donnee", garder_langue=False)
     changer_consentement(p.session, p.identite, niveau, suite[0] == "1", maintenant(), "ussd")
     return p.end("choix_enregistre")
+
+
+def code_personnel(p: Parcours, suite: list[str]) -> str:
+    """Choisir, changer ou supprimer son code personnel (on arrive ici déjà identifiée par le code)."""
+    identite = p.identite
+    if identite.id is None:
+        return p.end("aucune_donnee", garder_langue=False)
+    if identite.code_hache:
+        if not suite:
+            return p.con("code_gerer")
+        if suite[0] == "2":
+            identite.code_hache = None
+            tracer(p.session, "code_discret_supprime", None, _cible(identite), "ussd")
+            return p.end("code_supprime")
+        if suite[0] != "1":
+            return p.end("invalide")
+        suite = suite[1:]
+    if not suite:
+        return p.con("code_nouveau")
+    if not code_valide(suite[0]):
+        return p.end("code_trop_simple")
+    if len(suite) < 2:
+        return p.con("code_confirmer")
+    if suite[1] != suite[0]:
+        return p.end("code_different")
+    identite.code_hache = securite.hacher(suite[0])
+    identite.code_echecs, identite.code_verrouille_jusqua = 0, None
+    tracer(p.session, "code_discret_defini", None, _cible(identite), "ussd")
+    return p.end("code_enregistre")
+
+
+def _zones(session: Session) -> list[str]:
+    """Zones des relais, triées : l'ordre reste le même d'un écran à l'autre de la session."""
+    return sorted({z for z in session.scalars(select(Relais.zone).distinct()) if z})[:MAX_ZONES_ECRAN]
+
+
+def _sans_accents(texte: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", texte) if unicodedata.category(c) != "Mn")
 
 
 def parler_sf(p: Parcours, reste: list[str]) -> str:

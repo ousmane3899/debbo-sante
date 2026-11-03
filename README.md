@@ -74,6 +74,20 @@ Penta 1, Penta 3, RR 1, enfants zéro dose, visites des relais.
 | Pendant une urgence en cours, l'effacement attend la clôture de l'alerte ; les rappels s'arrêtent tout de suite | `app/vie_privee.py` |
 | Jeu de données de recherche : femmes d'accord seulement, pseudonyme à clé, mois au lieu des dates, zones de moins de 10 femmes fusionnées | `GET /api/recherche/export` (district) |
 
+## Mode discret (téléphone partagé)
+
+- Par USSD (« 6 Mes données → 4 Code personnel »), la femme peut choisir un code de 4 chiffres (haché, jamais stocké en clair).
+- Avec un code, « Mes rendez-vous », « Je suis enceinte » et « Mes données » (effacement compris) le demandent d'abord ;
+  3 erreurs bloquent 30 minutes. **Urgence, rappel, conseils et « parler à une sage-femme » restent ouverts sans code.**
+- Les appels de Debbo deviennent sans contenu : « vous avez un message, composez le code Debbo quand vous le pourrez ».
+- Code oublié : la relais (qui la connaît en personne) ou le poste (`POST /api/admin/femmes/{code}/retirer-code`) le retire.
+
+## Zone des femmes inscrites par USSD
+
+À l'inscription, la femme choisit sa zone dans la liste des zones des relais (« 0 Je ne sais pas » possible). Une femme
+sans zone reste visible de toutes les sages-femmes, pour qu'aucune urgence ne se perde ; une sage-femme peut la rattacher
+à son aire depuis le tableau de bord (le district peut changer n'importe quelle zone).
+
 ## Sécurité
 
 | Mesure | Où |
@@ -157,7 +171,6 @@ Toute modification de `regles.json` doit repasser le banc de scénarios, côté 
 
 - Audit de sécurité indépendant et test d'intrusion.
 - Interface d'administration des comptes (aujourd'hui : ligne de commande et API).
-- Rattachement à une zone des femmes inscrites par USSD (aujourd'hui visibles de toutes les sages-femmes).
 - Textes pulaar et wolof validés par 2 locuteurs natifs et 1 clinicien.
 - Règles cliniques signées par les référents médicaux ; calendrier PEV vérifié (VPI 2, MenA).
 - Branchements : agrégateur USSD/SMS/voix, fournisseur d'appels sortants (messages enregistrés en pulaar et wolof), mobile money.

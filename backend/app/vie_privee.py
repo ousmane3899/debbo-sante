@@ -113,6 +113,12 @@ def traiter_effacements_en_attente(session: Session, a: datetime) -> int:
     return faits
 
 
+def retirer_code(session: Session, identite: Identite, par: str) -> None:
+    """Code oublié : retiré par quelqu'un qui a vérifié l'identité de la femme en personne."""
+    identite.code_hache, identite.code_echecs, identite.code_verrouille_jusqua = None, 0, None
+    tracer(session, "code_discret_retire", None, _cible(identite), par)
+
+
 def pseudonyme_recherche(femme_id: int) -> str:
     """Identifiant stable pour les jeux de données de recherche, sans lien avec le code utilisé au poste."""
     mac = hmac.new(config.SECRET_PSEUDONYMES.encode(), f"femme:{femme_id}".encode(), hashlib.sha256)

@@ -131,10 +131,13 @@ function ligneFemme(f) {
   return `
     <div class="ligne ${f.perdue_de_vue ? "retard" : ""}">
       <div>
-        <div><strong>${echapper(f.nom || f.code)}</strong> ${f.perdue_de_vue ? `<span class="badge urgence">${f.contacts_en_retard} contact(s) manqué(s)</span>` : ""}</div>
+        <div><strong>${echapper(f.nom || f.code)}</strong> ${f.perdue_de_vue ? `<span class="badge urgence">${f.contacts_en_retard} contact(s) manqué(s)</span>` : ""}${f.zone ? "" : ` <span class="badge">sans zone</span>`}</div>
         <div class="meta">${f.nom ? `${echapper(f.code)} · ` : ""}${f.telephone ? echapper(f.telephone) : "sans téléphone"} · ${prochain}${f.terme_prevu ? ` · terme ≈ ${jour(f.terme_prevu)}` : ""}${f.relais ? ` · relais ${echapper(f.relais)}` : ""}</div>
       </div>
-      ${f.prochain_contact ? `<button data-contact="${f.prochain_contact.id}">Venue</button>` : ""}
+      <div class="actions">
+        ${!f.zone && utilisateur?.role === "sage_femme" ? `<button data-rattacher="${f.id}">Rattacher à mon aire</button>` : ""}
+        ${f.prochain_contact ? `<button data-contact="${f.prochain_contact.id}">Venue</button>` : ""}
+      </div>
     </div>`;
 }
 
@@ -196,6 +199,10 @@ document.addEventListener("click", async (evenement) => {
   } else if (bouton.dataset.vaccin) {
     await api(`/vaccinations/${bouton.dataset.vaccin}/fait`, { method: "POST" });
     rafraichir();
+  } else if (bouton.dataset.rattacher) {
+    if (!confirm(`Rattacher cette femme à votre aire (${utilisateur.zone}) ? Les autres sages-femmes ne verront plus son dossier.`)) return;
+    await api(`/femmes/${bouton.dataset.rattacher}/zone`, { method: "POST", body: JSON.stringify({ zone: utilisateur.zone }) });
+    rafraichir();
   } else if (bouton.dataset.contact) {
     await api(`/contacts/${bouton.dataset.contact}/realise`, { method: "POST" });
     rafraichir();
@@ -210,8 +217,10 @@ document.getElementById("deconnexion").addEventListener("click", async () => {
 });
 
 const ROLES = { sage_femme: "Sage-femme", district: "District" };
+let utilisateur = null;
 
 api("/auth/moi").then(({ utilisateur: u }) => {
+  utilisateur = u;
   if (!u) return location.replace("/connexion");
   if (!ROLES[u.role]) {
     document.querySelector("main").innerHTML = `<p class="vide">Ce compte (${echapper(u.role)}) n'a pas accès aux dossiers de santé.</p>`;

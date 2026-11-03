@@ -187,6 +187,25 @@ def lister_femmes(u: Utilisateur = Depends(soignant), session: Session = Depends
     return resultat
 
 
+class ZoneIn(BaseModel):
+    zone: str
+
+
+@router.post("/femmes/{femme_id}/zone")
+def rattacher_zone(femme_id: int, corps: ZoneIn, request: Request, u: Utilisateur = Depends(soignant),
+                   session: Session = Depends(get_session)) -> dict:
+    """Une sage-femme rattache à son aire une femme sans zone (inscrite par USSD) ; le district, à n'importe quelle zone."""
+    femme = session.get(Femme, femme_id)
+    if femme is None or femme.statut == "effacee" or not voit(u, femme.zone):
+        raise HTTPException(404, "Femme introuvable")
+    if u.role == "sage_femme" and (femme.zone is not None or corps.zone != u.zone):
+        raise HTTPException(403, "Une sage-femme ne peut rattacher qu'à son aire une femme qui n'a pas encore de zone")
+    femme.zone = corps.zone.strip() or None
+    tracer(session, "femme_rattachee", u.id, f"{femme.code}:{femme.zone}", request.client.host if request.client else None)
+    session.commit()
+    return {"id": femme.id, "zone": femme.zone}
+
+
 @router.post("/contacts/{contact_id}/realise")
 def contact_realise(contact_id: int, request: Request, u: Utilisateur = Depends(soignant),
                     session: Session = Depends(get_session)) -> dict:

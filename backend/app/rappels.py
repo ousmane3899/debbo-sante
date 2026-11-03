@@ -160,6 +160,11 @@ def planifier(session: Session, aujourdhui: date) -> dict:
     return cree
 
 
+def message_appel(appel: AppelSortant) -> str:
+    """Clé du message vocal. Mode discret : un message sans contenu, la femme consulte Debbo avec son code."""
+    return "appel_discret" if appel.femme.identite.code_hache else f"appel_{appel.motif}"
+
+
 def executer(session: Session, a: datetime, fournisseur: Fournisseur) -> int:
     if not dans_la_plage(a):
         return 0  # même en retard (serveur arrêté), aucun appel ne part la nuit
@@ -174,7 +179,7 @@ def executer(session: Session, a: datetime, fournisseur: Fournisseur) -> int:
             appel.statut, appel.termine_at = "annule", a  # elle est déjà venue
             continue
         identite = appel.femme.identite
-        appel.reference = fournisseur.appeler(identite.telephone, f"appel_{appel.motif}", identite.langue)
+        appel.reference = fournisseur.appeler(identite.telephone, message_appel(appel), identite.langue)
         appel.statut = "en_cours"
         lances += 1
     session.flush()

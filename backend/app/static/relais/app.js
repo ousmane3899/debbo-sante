@@ -315,6 +315,7 @@ function vueFemme(f) {
     </div>
     ${(f.enfants ?? []).map((e) => carteEnfant(f, e)).join("")}
     <p></p>
+    ${f.code_discret ? `<button class="lien" data-action="retirer-code" data-cle="${echapper(cle(f))}">Elle a oublié son code Debbo</button>` : ""}
     <button class="lien" data-action="effacer" data-cle="${echapper(cle(f))}">Elle demande l'effacement de ses données</button>`;
 }
 
@@ -678,6 +679,12 @@ const actions = {
   bebes: (d, bouton) => {
     document.querySelectorAll("#bebes button").forEach((b) => b.classList.toggle("principal", b === bouton));
     document.getElementById("bebes").dataset.choix = d.bebes;
+  },
+  "retirer-code": async (d) => {
+    const f = trouver(d.cle);
+    if (!f || !confirm(`Vous êtes avec ${f.nom} et vous l'avez reconnue ? Son code sera retiré : elle pourra en choisir un nouveau par le menu « Mes données ».`)) return;
+    await ajouter("retirer_code", { femme: ref(f) });
+    rendre();
   },
   effacer: async (d) => {
     const f = trouver(d.cle);

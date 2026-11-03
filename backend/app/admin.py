@@ -8,7 +8,7 @@ from app import journal
 from app.auth import exiger, fermer_sessions
 from app.db import get_session
 from app.models import Femme, JournalAcces, Utilisateur, maintenant
-from app.vie_privee import demander_effacement
+from app.vie_privee import demander_effacement, retirer_code
 
 router = APIRouter(prefix="/api/admin")
 admin = exiger("admin")
@@ -70,6 +70,18 @@ def effacer_femme(code: str, request: Request, a: Utilisateur = Depends(admin),
     journal.tracer(db, "effacement_saisi_par_admin", a.id, code, _ip(request))
     db.commit()
     return {"code": code, "effacement": resultat}
+
+
+@router.post("/femmes/{code}/retirer-code")
+def retirer_code_femme(code: str, request: Request, a: Utilisateur = Depends(admin),
+                       db: Session = Depends(get_session)) -> dict:
+    """Code personnel oublié, après vérification de l'identité de la femme au poste."""
+    femme = db.scalar(select(Femme).where(Femme.code == code))
+    if femme is None:
+        raise HTTPException(404, "Femme introuvable")
+    retirer_code(db, femme.identite, f"admin:{a.identifiant}")
+    db.commit()
+    return {"code": code, "code_discret": False}
 
 
 @router.get("/journal")

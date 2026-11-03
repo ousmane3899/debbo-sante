@@ -44,6 +44,10 @@ class Identite(Base):
     consentement_par: Mapped[str | None] = mapped_column(String(64))  # ussd, relais:R-0001…
     effacement_demande_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
     efface_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # Mode discret : code personnel (haché) demandé avant d'afficher quoi que ce soit de personnel.
+    code_hache: Mapped[str | None] = mapped_column(String(256))
+    code_echecs: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    code_verrouille_jusqua: Mapped[datetime | None] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=maintenant)
 
     femme: Mapped["Femme | None"] = relationship(back_populates="identite", uselist=False)
