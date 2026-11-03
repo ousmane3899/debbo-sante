@@ -3,3 +3,7 @@ __pycache__/
 .pytest_cache/
 *.db
 .claude/
+
+# Vidéos de présentation et de candidature : restent sur ce poste, jamais sur GitHub
+video/
+*.mp4
