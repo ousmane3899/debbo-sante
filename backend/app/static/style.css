@@ -239,3 +239,38 @@ dialog .actions { justify-content: flex-end; }
 .dhis2 thead th { color: var(--texte-doux); font-weight: 600; }
 .dhis2 td.non-relie { color: var(--texte-doux); }
 .dhis2 .avertissement { margin: 10px 0 0; }
+
+/* ---------- administration ---------- */
+.titre-section { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.titre-section h2 { margin: 0; }
+.filtres { display: flex; gap: 6px; }
+.filtres button { padding: 4px 10px; font-size: 13px; }
+.ligne.inactif { opacity: 0.6; }
+.formulaire { background: var(--carte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 14px 16px; }
+.formulaire label { display: block; font-weight: 600; margin: 10px 0 6px; }
+.formulaire label:first-child { margin-top: 0; }
+.formulaire input, .formulaire select, dialog select {
+  width: 100%;
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--bord);
+  background: var(--fond);
+  color: var(--texte);
+}
+.formulaire button { margin-top: 14px; }
+.formulaire .meta { color: var(--texte-doux); font-size: 13px; margin: 0 0 10px; }
+.message.ok { color: var(--ok); }
+.meta { color: var(--texte-doux); font-size: 13px; }
+dialog h3 { margin: 0 0 12px; font-size: 17px; }
+.secret-valeur {
+  font: 700 28px/1.2 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-align: center;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--accent-doux);
+  color: var(--accent);
+  user-select: all;
+}
+.journal .ligne { padding: 6px 12px; }

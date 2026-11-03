@@ -107,6 +107,20 @@ base locale hors du téléphone ; le chiffrement de l'appareil et un verrouillag
 
 ### Comptes
 
+Un compte `admin` gère les comptes depuis http://localhost:8000/admin (il ne voit aucun dossier de santé) :
+
+- créer une sage-femme, une relais, un compte district ou admin. Debbo affiche **une seule fois** un mot de passe
+  (ou un PIN pour une relais) provisoire, valable 72 h, à remettre en main propre ;
+- à la première connexion, la personne choisit son propre mot de passe (puis active la double authentification)
+  ou son propre PIN dans l'appli relais : l'administration ne le connaît jamais ;
+- mot de passe ou PIN oublié → nouveau secret provisoire ; téléphone perdu → double authentification réinitialisée ;
+  déverrouiller, désactiver, réactiver, changer d'aire (la sage-femme est déconnectée et ne voit plus que la nouvelle) ;
+- un admin ne peut pas réinitialiser ni désactiver son propre compte : il faut un second admin ;
+- demandes reçues au poste : code personnel USSD oublié, effacement des données ;
+- journal d'accès (chaîne vérifiée, auteur de chaque action).
+
+Le premier compte admin se crée en ligne de commande :
+
 ```bash
 cd backend
 ../.venv/Scripts/python -m app.comptes soignant --identifiant awa.sf --nom "Awa Ba" --role sage_femme --zone "Ourossogui"
@@ -150,7 +164,8 @@ cd backend
 ../.venv/Scripts/python -m uvicorn app.main:app --reload
 ```
 
-Puis ouvrir http://localhost:8000 (tableau de bord), http://localhost:8000/relais/ (appli relais) et http://localhost:8000/simulateur.
+Puis ouvrir http://localhost:8000 (tableau de bord), http://localhost:8000/admin (comptes),
+http://localhost:8000/relais/ (appli relais) et http://localhost:8000/simulateur.
 
 ## Tests
 
@@ -170,7 +185,6 @@ Toute modification de `regles.json` doit repasser le banc de scénarios, côté 
 ## Avant un pilote
 
 - Audit de sécurité indépendant et test d'intrusion.
-- Interface d'administration des comptes (aujourd'hui : ligne de commande et API).
 - Textes pulaar et wolof validés par 2 locuteurs natifs et 1 clinicien.
 - Règles cliniques signées par les référents médicaux ; calendrier PEV vérifié (VPI 2, MenA).
 - Branchements : agrégateur USSD/SMS/voix, fournisseur d'appels sortants (messages enregistrés en pulaar et wolof), mobile money.

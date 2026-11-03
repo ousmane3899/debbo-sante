@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Debbo Santé — Administration</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1><span>Debbo</span> Santé · Administration</h1>
+    <div class="utilisateur">
+      <span id="utilisateur"></span>
+      <button id="deconnexion">Se déconnecter</button>
+    </div>
+  </header>
+
+  <p class="avertissement">
+    L'administration gère les comptes et les demandes reçues au poste. Elle ne voit aucun dossier de santé.
+    Chaque action est inscrite dans le journal d'accès.
+  </p>
+
+  <main>
+    <section>
+      <div class="titre-section">
+        <h2>Comptes</h2>
+        <div class="filtres" id="filtres">
+          <button data-filtre="tous" class="principal">Tous</button>
+          <button data-filtre="soignants">Soignants</button>
+          <button data-filtre="relais">Relais</button>
+        </div>
+      </div>
+      <div class="liste" id="comptes"></div>
+    </section>
+
+    <div class="colonne">
+      <section>
+        <h2>Créer un compte</h2>
+        <form id="creation" class="formulaire">
+          <label for="c-role">Rôle</label>
+          <select id="c-role">
+            <option value="sage_femme">Sage-femme</option>
+            <option value="relais">Relais communautaire</option>
+            <option value="district">Équipe de district</option>
+            <option value="admin">Administration</option>
+          </select>
+          <label for="c-nom">Nom complet</label>
+          <input id="c-nom" required autocomplete="off">
+          <div data-pour="soignant">
+            <label for="c-identifiant">Identifiant de connexion</label>
+            <input id="c-identifiant" autocomplete="off" autocapitalize="none" placeholder="prenom.nom">
+          </div>
+          <div data-pour="relais">
+            <label for="c-code">Code relais</label>
+            <input id="c-code" autocomplete="off" autocapitalize="characters">
+          </div>
+          <div data-pour="zone">
+            <label for="c-zone">Zone (aire du poste de santé)</label>
+            <input id="c-zone" list="zones" autocomplete="off">
+          </div>
+          <div data-pour="relais">
+            <label for="c-telephone">Téléphone de la relais</label>
+            <input id="c-telephone" type="tel" autocomplete="off" placeholder="+221…">
+            <label for="c-telephone-sf">Téléphone de la sage-femme d'astreinte</label>
+            <input id="c-telephone-sf" type="tel" autocomplete="off" placeholder="+221…">
+          </div>
+          <button class="principal">Créer le compte</button>
+          <div class="message" id="creation-message" role="alert"></div>
+        </form>
+      </section>
+
+      <section>
+        <h2>Demande reçue au poste</h2>
+        <form id="demande" class="formulaire">
+          <p class="meta">Après avoir vérifié l'identité de la femme en personne.</p>
+          <label for="d-code">Code Debbo de la femme</label>
+          <input id="d-code" required autocomplete="off" autocapitalize="characters" placeholder="DB-…">
+          <label for="d-action">Demande</label>
+          <select id="d-action">
+            <option value="retirer-code">Elle a oublié son code personnel USSD</option>
+            <option value="effacer">Elle demande l'effacement de ses données</option>
+          </select>
+          <button class="principal">Enregistrer la demande</button>
+          <div class="message" id="demande-message" role="alert"></div>
+        </form>
+      </section>
+
+      <section>
+        <h2>Journal d'accès</h2>
+        <div id="journal-etat" class="meta"></div>
+        <div class="liste journal" id="journal"></div>
+      </section>
+    </div>
+  </main>
+
+  <datalist id="zones"></datalist>
+
+  <dialog id="secret">
+    <h3 id="secret-titre"></h3>
+    <p id="secret-consigne"></p>
+    <p class="secret-valeur" id="secret-valeur"></p>
+    <p class="meta" id="secret-expire"></p>
+    <form method="dialog" class="actions">
+      <button value="ok" class="principal">C'est noté, fermer</button>
+    </form>
+  </dialog>
+
+  <dialog id="modifier">
+    <form method="dialog">
+      <h3 id="m-titre"></h3>
+      <label for="m-nom">Nom complet</label>
+      <input id="m-nom" required autocomplete="off">
+      <div data-pour="zone">
+        <label for="m-zone">Zone</label>
+        <input id="m-zone" list="zones" autocomplete="off">
+      </div>
+      <div data-pour="relais">
+        <label for="m-telephone">Téléphone de la relais</label>
+        <input id="m-telephone" type="tel" autocomplete="off">
+        <label for="m-telephone-sf">Téléphone de la sage-femme d'astreinte</label>
+        <input id="m-telephone-sf" type="tel" autocomplete="off">
+      </div>
+      <div class="actions">
+        <button type="button" id="m-annuler">Annuler</button>
+        <button value="ok" class="principal">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/static/admin.js"></script>
+</body>
+</html>

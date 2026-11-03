@@ -119,9 +119,9 @@ const JSON_POST = (corps) => ({ method: "POST", headers: { "Content-Type": "appl
 async function reconnecter() {
   if (!etat.pin) return false;
   try {
-    await appelApi("/api/auth/relais", JSON_POST({ code: etat.code, pin: etat.pin }));
-    etat.sessionExpiree = false;
-    return true;
+    const { etape } = await appelApi("/api/auth/relais", JSON_POST({ code: etat.code, pin: etat.pin }));
+    etat.sessionExpiree = etape !== "ok";
+    return etape === "ok";
   } catch (erreur) {
     if (erreur.status === 401) etat.sessionExpiree = true;
     return false;
@@ -248,6 +248,33 @@ function vueConnexion(message = "") {
     <p></p>
     <button class="principal" data-action="connexion">Entrer</button>`;
 }
+
+function vueNouveauPin(code, message = "") {
+  return `
+    <h1>Choisissez votre PIN</h1>
+    <p class="doux">Relais ${echapper(code)} · le PIN donné par le poste est provisoire. Choisissez 6 chiffres
+      que vous seule connaissez (pas 123456 ni votre date de naissance).</p>
+    ${message ? `<div class="bandeau erreur">${echapper(message)}</div>` : ""}
+    <label for="nouveau-pin">Nouveau PIN</label>
+    ${champPin("nouveau-pin")}
+    <label for="nouveau-pin-2">Retapez-le</label>
+    ${champPin("nouveau-pin-2")}
+    <p></p>
+    <button class="principal" data-action="choisir-pin" data-code="${echapper(code)}">Enregistrer et entrer</button>`;
+}
+
+// Première ouverture sur ce téléphone : on télécharge le dossier et on chiffre les données avec le PIN.
+async function entrer(code, pin) {
+  const dossier = await appelApi("/api/relais/moi/dossier");
+  await effacerTout();
+  await initialiserVerrou(pin);
+  Object.assign(etat, { code, pin, dossier, file: [], erreurs: [], derniereSynchro: new Date().toISOString() });
+  await sauver();
+  location.hash = "#/";
+  rendre();
+}
+
+const MESSAGES_CONNEXION = { 401: "Code relais ou PIN incorrect.", 429: "Trop d'essais. Réessayez dans 15 minutes." };
 
 function vueDeverrouillage(message = "") {
   return `
@@ -565,17 +592,31 @@ const actions = {
       return;
     }
     try {
-      await appelApi("/api/auth/relais", JSON_POST({ code, pin }));
-      const dossier = await appelApi("/api/relais/moi/dossier");
-      await effacerTout();
-      await initialiserVerrou(pin);
-      Object.assign(etat, { code, pin, dossier, file: [], erreurs: [], derniereSynchro: new Date().toISOString() });
-      await sauver();
-      location.hash = "#/";
-      rendre();
+      const { etape } = await appelApi("/api/auth/relais", JSON_POST({ code, pin }));
+      if (etape === "nouveau_pin") {
+        app.innerHTML = vueNouveauPin(code);
+        return;
+      }
+      await entrer(code, pin);
     } catch (erreur) {
-      const message = { 401: "Code relais ou PIN incorrect.", 429: "Trop d'essais. Réessayez dans 15 minutes." }[erreur.status];
+      const message = /expiré/.test(erreur.message) ? erreur.message : MESSAGES_CONNEXION[erreur.status];
       app.innerHTML = vueConnexion(message || "Pas de réseau. La première connexion demande du réseau.");
+    }
+  },
+  "choisir-pin": async (d) => {
+    const pin = document.getElementById("nouveau-pin").value.trim();
+    if (pin !== document.getElementById("nouveau-pin-2").value.trim()) {
+      app.innerHTML = vueNouveauPin(d.code, "Les deux PIN sont différents.");
+      return;
+    }
+    try {
+      await appelApi("/api/auth/pin", JSON_POST({ nouveau: pin }));
+      await entrer(d.code, pin);
+    } catch (erreur) {
+      if (erreur.status === 422) app.innerHTML = vueNouveauPin(d.code, erreur.message);
+      else app.innerHTML = vueConnexion(erreur.status === 401
+        ? "Le temps est écoulé : reconnectez-vous avec le PIN provisoire."
+        : "Pas de réseau. La première connexion demande du réseau.");
     }
   },
   deverrouiller: async () => {

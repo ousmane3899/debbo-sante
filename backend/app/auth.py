@@ -4,6 +4,8 @@
   À la première connexion, l'activation du TOTP est obligatoire avant tout accès.
 - Relais : code relais + PIN à 6 chiffres ; session longue (30 jours, prolongée à
   chaque usage) pour couvrir les semaines sans réseau.
+- Un compte créé ou réinitialisé par l'administration reçoit un secret provisoire (72 h) :
+  il faut le remplacer par un secret choisi avant toute autre étape.
 - 5 échecs de suite verrouillent le compte 15 minutes.
 - Le cookie de session est HttpOnly, Secure et SameSite=Strict.
 """
@@ -17,6 +19,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app import securite
+from app.comptes import valider_mot_de_passe, valider_pin
 from app.db import get_session
 from app.journal import tracer
 from app.models import Relais, SessionAuth, Utilisateur, maintenant
@@ -33,6 +36,7 @@ router = APIRouter(prefix="/api/auth")
 
 ECHEC = HTTPException(401, "Identifiant ou mot de passe incorrect")
 VERROUILLE = HTTPException(429, "Trop de tentatives. Réessayez dans 15 minutes.")
+PROVISOIRE_EXPIRE = HTTPException(401, "Ce code provisoire a expiré : demandez-en un nouveau au poste.")
 
 
 class ConnexionIn(BaseModel):
@@ -47,6 +51,10 @@ class CodeIn(BaseModel):
 class RelaisIn(BaseModel):
     code: str
     pin: str
+
+
+class NouveauSecretIn(BaseModel):
+    nouveau: str
 
 
 def _ip(request: Request) -> str | None:
@@ -90,6 +98,24 @@ def _echec(db: Session, u: Utilisateur, request: Request, action: str) -> None:
     db.commit()
 
 
+def _provisoire_expire(u: Utilisateur) -> bool:
+    return u.secret_provisoire and (u.secret_expire_at is None or u.secret_expire_at < maintenant())
+
+
+def _etape_soignant(u: Utilisateur) -> str:
+    if u.secret_provisoire:
+        return "nouveau_mot_de_passe"
+    return "totp" if u.totp_actif else "activation_2fa"
+
+
+def _remplacer_secret(db: Session, u: Utilisateur, nouveau: str, request: Request) -> None:
+    if securite.verifier(nouveau, u.secret_hache):
+        raise HTTPException(422, "Choisissez un secret différent du code provisoire")
+    u.secret_hache = securite.hacher(nouveau)
+    u.secret_provisoire, u.secret_expire_at = False, None
+    tracer(db, "secret_choisi", u.id, u.identifiant, _ip(request))
+
+
 def _profil(u: Utilisateur) -> dict:
     profil = {"identifiant": u.identifiant, "nom": u.nom, "role": u.role, "zone": u.zone}
     if u.relais:
@@ -125,6 +151,15 @@ def _session_partielle(request: Request, db: Session = Depends(get_session)) -> 
     return s
 
 
+def _partielle_2fa(s: SessionAuth = Depends(_session_partielle)) -> SessionAuth:
+    """Étapes TOTP : soignants seulement, et après avoir remplacé le mot de passe provisoire."""
+    if s.utilisateur.role not in ROLES_SOIGNANTS:
+        raise HTTPException(403, "Accès refusé pour ce rôle")
+    if s.utilisateur.secret_provisoire:
+        raise HTTPException(409, "Choisissez d'abord votre mot de passe")
+    return s
+
+
 def _promouvoir(db: Session, response: Response, s: SessionAuth) -> None:
     """Remplace la session partielle par une session complète, avec un nouveau jeton."""
     utilisateur = s.utilisateur
@@ -147,15 +182,35 @@ def connexion(corps: ConnexionIn, request: Request, response: Response, db: Sess
     if not securite.verifier(corps.mot_de_passe, u.secret_hache):
         _echec(db, u, request, "connexion_echec")
         raise ECHEC
+    if _provisoire_expire(u):
+        raise PROVISOIRE_EXPIRE
     u.echecs = 0
     _ouvrir_session(db, response, u, "mot_de_passe", DUREE_PARTIELLE)
     tracer(db, "mot_de_passe_ok", u.id, u.identifiant, _ip(request))
     db.commit()
-    return {"etape": "totp" if u.totp_actif else "activation_2fa"}
+    return {"etape": _etape_soignant(u)}
+
+
+@router.post("/mot-de-passe")
+def choisir_mot_de_passe(corps: NouveauSecretIn, request: Request, s: SessionAuth = Depends(_session_partielle),
+                         db: Session = Depends(get_session)) -> dict:
+    """Remplace le mot de passe provisoire donné par l'administration."""
+    u = s.utilisateur
+    if u.role not in ROLES_SOIGNANTS or not u.secret_provisoire:
+        raise HTTPException(409, "Aucun mot de passe provisoire à remplacer")
+    if _provisoire_expire(u):
+        raise PROVISOIRE_EXPIRE
+    try:
+        valider_mot_de_passe(corps.nouveau)
+    except ValueError as erreur:
+        raise HTTPException(422, str(erreur)) from None
+    _remplacer_secret(db, u, corps.nouveau, request)
+    db.commit()
+    return {"etape": _etape_soignant(u)}
 
 
 @router.post("/totp")
-def totp(corps: CodeIn, request: Request, response: Response, s: SessionAuth = Depends(_session_partielle),
+def totp(corps: CodeIn, request: Request, response: Response, s: SessionAuth = Depends(_partielle_2fa),
          db: Session = Depends(get_session)) -> dict:
     u = s.utilisateur
     if not u.totp_actif:
@@ -175,7 +230,7 @@ def totp(corps: CodeIn, request: Request, response: Response, s: SessionAuth = D
 
 
 @router.post("/2fa/debut")
-def debut_2fa(s: SessionAuth = Depends(_session_partielle), db: Session = Depends(get_session)) -> dict:
+def debut_2fa(s: SessionAuth = Depends(_partielle_2fa), db: Session = Depends(get_session)) -> dict:
     u = s.utilisateur
     if u.totp_actif:
         raise HTTPException(409, "Déjà activée")
@@ -186,7 +241,7 @@ def debut_2fa(s: SessionAuth = Depends(_session_partielle), db: Session = Depend
 
 
 @router.post("/2fa/activer")
-def activer_2fa(corps: CodeIn, request: Request, response: Response, s: SessionAuth = Depends(_session_partielle),
+def activer_2fa(corps: CodeIn, request: Request, response: Response, s: SessionAuth = Depends(_partielle_2fa),
                 db: Session = Depends(get_session)) -> dict:
     u = s.utilisateur
     if u.totp_actif or not u.totp_secret:
@@ -219,11 +274,39 @@ def connexion_relais(corps: RelaisIn, request: Request, response: Response, db: 
     if not securite.verifier(corps.pin, u.secret_hache):
         _echec(db, u, request, "connexion_echec")
         raise HTTPException(401, "Code relais ou PIN incorrect")
+    if _provisoire_expire(u):
+        raise PROVISOIRE_EXPIRE
     u.echecs = 0
+    if u.secret_provisoire:
+        _ouvrir_session(db, response, u, "mot_de_passe", DUREE_PARTIELLE)
+        tracer(db, "pin_provisoire_ok", u.id, u.identifiant, _ip(request))
+        db.commit()
+        return {"etape": "nouveau_pin"}
     _ouvrir_session(db, response, u, "complet", DUREE_RELAIS)
     tracer(db, "connexion", u.id, u.identifiant, _ip(request))
     db.commit()
-    return {"utilisateur": _profil(u)}
+    return {"etape": "ok", "utilisateur": _profil(u)}
+
+
+@router.post("/pin")
+def choisir_pin(corps: NouveauSecretIn, request: Request, response: Response,
+                s: SessionAuth = Depends(_session_partielle), db: Session = Depends(get_session)) -> dict:
+    """La relais remplace le PIN provisoire par le sien, puis entre dans l'appli."""
+    u = s.utilisateur
+    if u.role != "relais" or not u.secret_provisoire:
+        raise HTTPException(409, "Aucun PIN provisoire à remplacer")
+    if _provisoire_expire(u):
+        raise PROVISOIRE_EXPIRE
+    try:
+        valider_pin(corps.nouveau)
+    except ValueError as erreur:
+        raise HTTPException(422, str(erreur)) from None
+    _remplacer_secret(db, u, corps.nouveau, request)
+    db.delete(s)
+    _ouvrir_session(db, response, u, "complet", DUREE_RELAIS)
+    tracer(db, "connexion", u.id, u.identifiant, _ip(request))
+    db.commit()
+    return {"etape": "ok", "utilisateur": _profil(u)}
 
 
 # ---------- commun ----------
@@ -234,7 +317,7 @@ def moi(request: Request, db: Session = Depends(get_session)) -> dict:
     if s is None:
         raise HTTPException(401, "Connexion requise")
     if s.niveau != "complet":
-        return {"etape": "totp" if s.utilisateur.totp_actif else "activation_2fa"}
+        return {"etape": "nouveau_pin" if s.utilisateur.role == "relais" else _etape_soignant(s.utilisateur)}
     return {"etape": "ok", "utilisateur": _profil(s.utilisateur)}
 
 

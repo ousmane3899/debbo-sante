@@ -19,6 +19,16 @@
       <button class="principal">Continuer</button>
     </form>
 
+    <form id="etape-nouveau-mot-de-passe" hidden>
+      <p><strong>Première connexion : choisissez votre mot de passe.</strong></p>
+      <p class="doux">Au moins 12 caractères. Une phrase facile à retenir marche bien, par exemple trois mots et un nombre.</p>
+      <label for="nouveau">Nouveau mot de passe</label>
+      <input id="nouveau" type="password" autocomplete="new-password" minlength="12" required>
+      <label for="nouveau-confirmation">Retapez-le</label>
+      <input id="nouveau-confirmation" type="password" autocomplete="new-password" minlength="12" required>
+      <button class="principal">Enregistrer</button>
+    </form>
+
     <form id="etape-totp" hidden>
       <p>Entrez le code à 6 chiffres affiché dans votre application d'authentification.</p>
       <label for="code">Code</label>

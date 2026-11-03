@@ -245,6 +245,9 @@ class Utilisateur(Base):
     zone: Mapped[str | None] = mapped_column(String(64))  # aire de la sage-femme ; vide = toutes (district, admin)
     relais_id: Mapped[int | None] = mapped_column(ForeignKey("relais.id"), unique=True)
     secret_hache: Mapped[str] = mapped_column(String(256))  # mot de passe ou PIN, haché par scrypt
+    # Secret donné par l'administration : à remplacer à la première connexion, avant son expiration.
+    secret_provisoire: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    secret_expire_at: Mapped[datetime | None] = mapped_column(DateTime)
     totp_secret: Mapped[str | None] = mapped_column(String(64))
     totp_actif: Mapped[bool] = mapped_column(Boolean, default=False)
     totp_dernier_pas: Mapped[int | None] = mapped_column(Integer)

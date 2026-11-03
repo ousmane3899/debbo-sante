@@ -222,6 +222,7 @@ let utilisateur = null;
 api("/auth/moi").then(({ utilisateur: u }) => {
   utilisateur = u;
   if (!u) return location.replace("/connexion");
+  if (u.role === "admin") return location.replace("/admin");
   if (!ROLES[u.role]) {
     document.querySelector("main").innerHTML = `<p class="vide">Ce compte (${echapper(u.role)}) n'a pas accès aux dossiers de santé.</p>`;
     return;

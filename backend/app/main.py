@@ -128,6 +128,11 @@ def page_connexion() -> FileResponse:
     return FileResponse(STATIC / "connexion.html")
 
 
+@app.get("/admin", include_in_schema=False)
+def page_admin() -> FileResponse:
+    return FileResponse(STATIC / "admin.html")
+
+
 @app.get("/simulateur", include_in_schema=False)
 def simulateur() -> FileResponse:
     if not config.SIMULATEUR_ACTIF:

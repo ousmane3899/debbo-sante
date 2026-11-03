@@ -2,7 +2,7 @@
 // Réseau d'abord (fichiers à jour quand il y a du réseau), cache sinon.
 // Les appels /api ne passent jamais par le cache : l'appli gère elle-même la file d'envoi.
 
-const CACHE = "debbo-relais-v7";
+const CACHE = "debbo-relais-v8";
 const COQUILLE = ["./", "index.html", "app.js", "moteur.js", "stockage.js", "relais.css", "manifest.webmanifest", "icone.svg"];
 
 self.addEventListener("install", (evenement) => {

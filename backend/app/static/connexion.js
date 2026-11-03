@@ -1,4 +1,9 @@
-const ETAPES = { mot_de_passe: "etape-mot-de-passe", totp: "etape-totp", activation_2fa: "etape-activation" };
+const ETAPES = {
+  mot_de_passe: "etape-mot-de-passe",
+  nouveau_mot_de_passe: "etape-nouveau-mot-de-passe",
+  totp: "etape-totp",
+  activation_2fa: "etape-activation",
+};
 
 async function appel(chemin, corps) {
   const reponse = await fetch(`/api/auth${chemin}`, {
@@ -54,6 +59,17 @@ document.getElementById(ETAPES.mot_de_passe).addEventListener("submit", (e) =>
       identifiant: document.getElementById("identifiant").value,
       mot_de_passe: document.getElementById("mot-de-passe").value,
     }).finally(() => { document.getElementById("mot-de-passe").value = ""; })));
+
+document.getElementById(ETAPES.nouveau_mot_de_passe).addEventListener("submit", (e) =>
+  soumettre(e, async () => {
+    const nouveau = document.getElementById("nouveau");
+    const confirmation = document.getElementById("nouveau-confirmation");
+    const identiques = nouveau.value === confirmation.value;
+    const valeur = nouveau.value;
+    nouveau.value = confirmation.value = "";
+    if (!identiques) throw new Error("Les deux saisies sont différentes.");
+    return appel("/mot-de-passe", { nouveau: valeur });
+  }));
 
 document.getElementById(ETAPES.totp).addEventListener("submit", (e) =>
   soumettre(e, () => appel("/totp", { code: document.getElementById("code").value })));
